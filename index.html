@@ -684,9 +684,9 @@ tr:hover td { background: var(--surface); }
     </div>
     <div class="modal-body">
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('eng-tab','basic')">기본정보</div>
-        <div class="tab" onclick="switchTab('eng-tab','cert')">자격증</div>
-        <div class="tab" onclick="switchTab('eng-tab','career')">경력사항</div>
+        <div class="tab active" data-tab="basic" onclick="switchTab('eng-tab','basic',this)">기본정보</div>
+        <div class="tab" data-tab="cert" onclick="switchTab('eng-tab','cert',this)">자격증</div>
+        <div class="tab" data-tab="career" onclick="switchTab('eng-tab','career',this)">경력사항</div>
       </div>
 
       <div id="eng-tab-basic" class="tab-content active">
@@ -943,7 +943,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbwOhZ7DAj75OuWbTl-1OMfIHIw0nG4oP5p7g4agv8wFy97Xo8kdKZCm72OMqSX1ZKo3pg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxq-3wT5euKNsgCTkISezJDkLWnXsvcg7qSRM9gGfONaX9HVuBqLO4tev7Z3ql8d2wr_A/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -959,6 +959,31 @@ let ALL_ENGINEERS = [];
 let ALL_ENGINEERS_FILTERED = [];
 let CURRENT_PAGE = 1;
 const PAGE_SIZE = 15;
+
+// ── 캐시 ──────────────────────────────────────
+const CACHE = {
+  dashboard: null,
+  dashboardTime: 0,
+  engineerDetail: {},      // id → 데이터
+  experiences: {},          // engineerId → 데이터
+  certs: {},               // engineerId → 데이터
+  TTL: 60000               // 1분 캐시
+};
+function cacheGet(key, id) {
+  const store = id !== undefined ? CACHE[key] : null;
+  if (id !== undefined) {
+    const item = CACHE[key][id];
+    if (item && Date.now() - item.time < CACHE.TTL) return item.data;
+  }
+  return null;
+}
+function cacheSet(key, id, data) {
+  if (id !== undefined) CACHE[key][id] = { data, time: Date.now() };
+}
+function cacheClear(key) {
+  if (key === 'all') { CACHE.dashboard=null; CACHE.engineerDetail={}; CACHE.experiences={}; CACHE.certs={}; }
+  else if (key) CACHE[key] = typeof CACHE[key] === 'object' && !Array.isArray(CACHE[key]) ? {} : null;
+}
 
 // ── API 호출 ────────────────────────────────────
 async function api(action, params = {}) {
@@ -1530,7 +1555,13 @@ let chartWorktype, chartGrade, chartProjtype;
 
 async function loadDashboard() {
   try {
-    const data = await api("getDashboard");
+    // 1분 캐시
+    let data = CACHE.dashboard && (Date.now() - CACHE.dashboardTime < CACHE.TTL) ? CACHE.dashboard : null;
+    if (!data) {
+      data = await api("getDashboard");
+      CACHE.dashboard = data;
+      CACHE.dashboardTime = Date.now();
+    }
     renderDashboardStats(data);
     renderCharts(data);
     renderTopEngineers(data.경력TOP5);
@@ -1728,7 +1759,11 @@ function goPage(p) {
 async function openEngineerDetail(id) {
   CURRENT_ENG_ID = id;
   try {
-    const eng = await api("getEngineer", { id });
+    let eng = cacheGet("engineerDetail", id);
+    if (!eng) {
+      eng = await api("getEngineer", { id });
+      cacheSet("engineerDetail", id, eng);
+    }
     document.getElementById("eng-id").value = eng.ID;
     document.getElementById("eng-empno").value = eng["사번"] || "";
     document.getElementById("eng-name").value = eng["이름"] || "";
@@ -1746,7 +1781,7 @@ async function openEngineerDetail(id) {
     document.getElementById("save-eng-btn").textContent = "수정 저장";
 
     openModal("engineer-modal");
-    switchTab("eng-tab", "basic");
+    switchTab("eng-tab", "basic", null);
     loadCertList(id);
     loadExpList(id);
   } catch(e) {
@@ -1768,7 +1803,7 @@ function openEngineerModal() {
   document.getElementById("cert-list").innerHTML = "";
   document.getElementById("exp-list").innerHTML = "";
   openModal("engineer-modal");
-  switchTab("eng-tab", "basic");
+  switchTab("eng-tab", "basic", null);
 }
 
 async function saveEngineer() {
@@ -1798,6 +1833,7 @@ async function saveEngineer() {
       await apiPost("addEngineer", body);
       toast("등록 완료", "success");
     }
+    cacheClear("all");
     closeModal("engineer-modal");
     loadEngineers();
   } catch(e) {
@@ -1809,6 +1845,7 @@ async function deleteEngineer(id, name) {
   if (!confirm(`"${name}"을(를) 삭제하시겠습니까?\n관련 경력 데이터도 함께 관리하세요.`)) return;
   try {
     await apiPost("deleteEngineer", { id });
+    cacheClear("all");
     toast("삭제 완료", "success");
     loadEngineers();
   } catch(e) {
@@ -1819,7 +1856,11 @@ async function deleteEngineer(id, name) {
 // ── 자격증 관리 ─────────────────────────────────
 async function loadCertList(engId) {
   try {
-    const certs = await api("getCerts", { engineerId: engId });
+    let certs = cacheGet("certs", engId);
+    if (!certs) {
+      certs = await api("getCerts", { engineerId: engId });
+      cacheSet("certs", engId, certs);
+    }
     document.getElementById("cert-list").innerHTML = certs.length
       ? certs.map(c => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;margin-bottom:8px;">
@@ -1851,6 +1892,7 @@ async function saveCert() {
       발급기관: document.getElementById("cert-issuer").value,
     });
     toast("자격증 등록 완료", "success");
+    cacheClear("certs");
     closeCertForm();
     loadCertList(CURRENT_ENG_ID);
   } catch(e) { toast("저장 실패: " + e.message, "error"); }
@@ -1860,6 +1902,7 @@ async function deleteCert(id) {
   if (!confirm("자격증을 삭제하시겠습니까?")) return;
   try {
     await apiPost("deleteCert", { id });
+    cacheClear("certs");
     loadCertList(CURRENT_ENG_ID);
     toast("삭제 완료", "success");
   } catch(e) { toast("삭제 실패", "error"); }
@@ -1868,7 +1911,11 @@ async function deleteCert(id) {
 // ── 경력 관리 ────────────────────────────────────
 async function loadExpList(engId) {
   try {
-    const exps = await api("getExperiences", { engineerId: engId });
+    let exps = cacheGet("experiences", engId);
+    if (!exps) {
+      exps = await api("getExperiences", { engineerId: engId });
+      cacheSet("experiences", engId, exps);
+    }
     document.getElementById("exp-list").innerHTML = exps.length
       ? exps.map(e => `
         <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">
@@ -1931,14 +1978,20 @@ async function saveExp() {
       await apiPost("addExperience", body);
     }
     toast("경력 저장 완료", "success");
+    cacheClear("experiences"); cacheClear("engineerDetail"); cacheClear("dashboard");
     closeExpForm();
     loadExpList(CURRENT_ENG_ID);
   } catch(e) { toast("저장 실패: " + e.message, "error"); }
 }
 
 async function editExp(id) {
+  if (!CURRENT_ENG_ID) { toast("기술인을 먼저 선택하세요", "error"); return; }
   try {
-    const exps = await api("getExperiences", { engineerId: CURRENT_ENG_ID });
+    let exps = cacheGet("experiences", CURRENT_ENG_ID);
+    if (!exps) {
+      exps = await api("getExperiences", { engineerId: CURRENT_ENG_ID });
+      cacheSet("experiences", CURRENT_ENG_ID, exps);
+    }
     const exp = exps.find(e => e["ID"] === id);
     if (!exp) return;
     document.getElementById("exp-edit-id").value = id;
@@ -1960,6 +2013,7 @@ async function deleteExp(id) {
   if (!confirm("이 경력을 삭제하시겠습니까?")) return;
   try {
     await apiPost("deleteExperience", { id });
+    cacheClear("experiences"); cacheClear("engineerDetail"); cacheClear("dashboard");
     toast("삭제 완료", "success");
     loadExpList(CURRENT_ENG_ID);
   } catch(e) { toast("삭제 실패", "error"); }
@@ -2167,15 +2221,21 @@ function printReport() {
 function openModal(id) { document.getElementById(id).classList.add("open"); }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
 
-function switchTab(group, tab) {
-  document.querySelectorAll(`#${group}-${tab}`).forEach(el => el.classList.add("active"));
-  document.querySelectorAll(`.tab-content`).forEach(el => {
+function switchTab(group, tab, clickedEl) {
+  // 탭 콘텐츠 전환
+  document.querySelectorAll(".tab-content").forEach(el => {
     if (el.id.startsWith(group + "-")) el.classList.remove("active");
   });
-  document.getElementById(`${group}-${tab}`).classList.add("active");
-
+  const target = document.getElementById(group + "-" + tab);
+  if (target) target.classList.add("active");
+  // 탭 버튼 활성화 (clickedEl이 있으면 사용, 없으면 data 속성으로 찾기)
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  event.target.classList.add("active");
+  if (clickedEl) {
+    clickedEl.classList.add("active");
+  } else {
+    const tabBtns = document.querySelectorAll(".tab");
+    tabBtns.forEach(t => { if (t.textContent.trim() === tab || t.dataset.tab === tab) t.classList.add("active"); });
+  }
 }
 
 function toast(msg, type = "info") {
