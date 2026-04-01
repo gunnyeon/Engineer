@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기술인 경력관리 시스템 | 건축사업본부</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* ── 변수 ─────────────────────────────── */
+:root {
+  --primary: #1a56db;
+  --primary-dark: #1040b0;
+  --primary-light: #e8f0ff;
+  --accent: #f59e0b;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warn: #f97316;
+  --bg: #f0f4f8;
+  --bg2: #ffffff;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --sidebar: #0f172a;
+  --sidebar-hover: #1e293b;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.08);
+  --font: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── 레이아웃 ─────────────────────────── */
+#app { display: flex; min-height: 100vh; }
+#sidebar {
+  width: 230px; min-height: 100vh; background: var(--sidebar);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100;
+  transition: transform .25s;
+}
+#main { margin-left: 230px; flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── 사이드바 ─────────────────────────── */
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sidebar-logo .company { font-size: 10px; color: rgba(255,255,255,.4); letter-spacing: .5px; text-transform: uppercase; }
+.sidebar-logo .title { font-size: 15px; font-weight: 700; color: #fff; margin-top: 4px; line-height: 1.3; }
+.sidebar-logo .subtitle { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 2px; }
+
+.nav-section { padding: 16px 8px 4px; }
+.nav-section-label { font-size: 10px; color: rgba(255,255,255,.3); padding: 0 8px 6px; letter-spacing: .8px; text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  color: rgba(255,255,255,.65); font-size: 13.5px; transition: all .15s;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--primary); color: #fff; }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+
+.sidebar-bottom {
+  margin-top: auto; padding: 12px; border-top: 1px solid rgba(255,255,255,.08);
+}
+.user-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 8px;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary); display: flex; align-items: center;
+  justify-content: center; font-size: 13px; font-weight: 700; color: #fff;
+}
+.user-info .name { font-size: 13px; font-weight: 600; color: #fff; }
+.user-info .role { font-size: 11px; color: rgba(255,255,255,.4); }
+#logout-btn {
+  width: 100%; margin-top: 8px; padding: 7px; border-radius: 6px;
+  background: rgba(255,255,255,.06); border: none; color: rgba(255,255,255,.5);
+  cursor: pointer; font-size: 12px; transition: all .15s;
+}
+#logout-btn:hover { background: rgba(255,255,255,.12); color: rgba(255,255,255,.8); }
+
+/* ── 상단 헤더 ─────────────────────────── */
+#topbar {
+  height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; position: sticky; top: 0; z-index: 50;
+}
+#page-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+#mobile-menu-btn {
+  display: none; background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--text2);
+}
+
+/* ── 컨텐츠 영역 ──────────────────────── */
+#content { flex: 1; padding: 24px; max-width: 1280px; width: 100%; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── 카드 ─────────────────────────────── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title { font-size: 15px; font-weight: 700; color: var(--text); }
+
+/* ── 통계 카드 ────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; background: var(--card-color, var(--primary));
+}
+.stat-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+.stat-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ── 버튼 ─────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 7px; border: none;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: all .15s; text-decoration: none; white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: #fee2e2; color: var(--danger); }
+.btn-danger:hover { background: #fecaca; }
+.btn-success { background: #d1fae5; color: #065f46; }
+.btn-success:hover { background: #a7f3d0; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 6px; }
+
+/* ── 테이블 ───────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th {
+  background: var(--surface); padding: 10px 12px; text-align: left;
+  font-weight: 700; color: var(--text2); border-bottom: 2px solid var(--border);
+  white-space: nowrap; font-size: 12px; text-transform: uppercase; letter-spacing: .3px;
+}
+td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface); }
+
+/* ── 배지 ─────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+}
+.badge-특급 { background: #fef3c7; color: #92400e; }
+.badge-고급 { background: #dbeafe; color: #1e40af; }
+.badge-중급 { background: #d1fae5; color: #065f46; }
+.badge-초급 { background: #f1f5f9; color: #475569; }
+.badge-건축 { background: #dbeafe; color: #1e40af; }
+.badge-품질 { background: #fef3c7; color: #92400e; }
+.grade-pair { display:inline-flex; gap:5px; flex-wrap:wrap; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-orange { background: #fed7aa; color: #9a3412; }
+.badge-gray { background: #f1f5f9; color: #475569; }
+
+/* ── 폼 ───────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.form-control {
+  width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+  border-radius: 7px; font-size: 14px; color: var(--text);
+  background: var(--bg2); transition: border-color .15s;
+  font-family: var(--font);
+}
+.form-control:focus { outline: none; border-color: var(--primary); }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; }
+
+/* ── 모달 ─────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border-radius: 12px; width: 100%;
+  max-width: 680px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.modal-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0;
+  background: var(--bg2); z-index: 1;
+}
+.modal-title { font-size: 17px; font-weight: 700; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text3); padding: 4px; border-radius: 4px; }
+.modal-close:hover { background: var(--border); }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ── 검색 바 ──────────────────────────── */
+.search-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-bar .form-control { max-width: 240px; }
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.chip {
+  padding: 4px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+  font-size: 12px; cursor: pointer; background: var(--bg2); color: var(--text2);
+  transition: all .12s; font-weight: 500;
+}
+.chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chip:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+/* ── 타임라인 ─────────────────────────── */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+  width: 2px; background: var(--border);
+}
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-dot {
+  position: absolute; left: -24px; top: 4px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--primary); border: 2px solid var(--bg2);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.timeline-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.timeline-meta { font-size: 12px; color: var(--text2); display: flex; gap: 12px; flex-wrap: wrap; }
+.timeline-period { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ── 프로그레스바 ─────────────────────── */
+.progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.progress-fill { height: 100%; border-radius: 4px; background: var(--primary); transition: width .4s; }
+
+/* ── 토스트 ───────────────────────────── */
+#toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 12px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 500;
+  box-shadow: var(--shadow-md); min-width: 220px; max-width: 360px;
+  animation: slideIn .2s ease;
+}
+.toast-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.toast-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.toast-info { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #bfdbfe; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ── 로그인 ───────────────────────────── */
+#login-screen {
+  min-height: 100vh; display: flex; align-items: center;
+  justify-content: center; background: var(--sidebar); position: fixed;
+  inset: 0; z-index: 9000;
+}
+.login-card {
+  background: #1e293b; border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px; padding: 40px; width: 380px;
+}
+.login-logo { text-align: center; margin-bottom: 32px; }
+.login-logo .logo-icon { font-size: 40px; }
+.login-logo h1 { font-size: 20px; font-weight: 800; color: #fff; margin-top: 10px; }
+.login-logo p { font-size: 12.5px; color: rgba(255,255,255,.4); margin-top: 4px; }
+.login-field label { display: block; font-size: 12px; color: rgba(255,255,255,.5); margin-bottom: 6px; font-weight: 600; }
+.login-field input {
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05);
+  color: #fff; font-size: 14px; font-family: var(--font);
+  transition: border-color .15s;
+}
+.login-field input:focus { outline: none; border-color: var(--primary); }
+.login-btn {
+  width: 100%; padding: 12px; border-radius: 8px; border: none;
+  background: var(--primary); color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer; margin-top: 8px; transition: background .15s; font-family: var(--font);
+}
+.login-btn:hover { background: var(--primary-dark); }
+.login-hint { font-size: 11.5px; color: rgba(255,255,255,.3); text-align: center; margin-top: 16px; }
+
+/* ── 로딩 ─────────────────────────────── */
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid var(--border); border-top-color: var(--primary);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--text3); gap: 12px;
+}
+
+/* ── 프로필 헤더 ──────────────────────── */
+.profile-header {
+  display: flex; align-items: flex-start; gap: 20px;
+  padding: 24px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow);
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;
+  background: var(--primary); display: flex; align-items: center;
+  justify-content: center; font-size: 26px; font-weight: 800; color: #fff;
+}
+.profile-name { font-size: 22px; font-weight: 800; }
+.profile-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+/* ── 탭 ───────────────────────────────── */
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab {
+  padding: 10px 16px; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--text2);
+  transition: all .15s;
+}
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab:hover:not(.active) { color: var(--text); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── 반응형 ───────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%);
+    box-shadow: 4px 0 20px rgba(0,0,0,.3);
+  }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  #mobile-menu-btn { display: block; }
+  #content { padding: 16px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr; }
+  .profile-header { flex-direction: column; }
+  .modal { max-height: 95vh; }
+}
+
+/* ── 차트 컨테이너 ────────────────────── */
+.chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; margin-bottom: 24px; }
+.chart-container { position: relative; height: 220px; }
+
+/* ── 빈 상태 ──────────────────────────── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text3); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* ── PDF 미리보기 ─────────────────────── */
+#pdf-preview {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  padding: 40px; background: #fff; color: #000; max-width: 760px;
+  margin: 0 auto; font-size: 12px;
+}
+#pdf-preview h1 { font-size: 20px; text-align: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 24px; }
+#pdf-preview .section-title { font-size: 14px; font-weight: 700; background: #f0f0f0; padding: 6px 10px; margin: 16px 0 8px; }
+#pdf-preview table { width: 100%; border-collapse: collapse; }
+#pdf-preview table td, #pdf-preview table th { border: 1px solid #ccc; padding: 6px 8px; font-size: 11.5px; }
+#pdf-preview table th { background: #e8e8e8; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ── 토스트 ── -->
+<div id="toast-container"></div>
+
+<!-- ── 로그인 ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🏗️</div>
+      <h1>기술인 경력관리 시스템</h1>
+      <p>건축사업본부 인력관리 플랫폼</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="login-field">
+        <label>아이디</label>
+        <input type="text" id="login-id" placeholder="아이디 입력" value="admin">
+      </div>
+      <div class="login-field">
+        <label>비밀번호</label>
+        <input type="password" id="login-pw" placeholder="비밀번호 입력" value="admin1234" onkeypress="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" onclick="doLogin()" id="login-btn-el">로그인</button>
+    </div>
+    <p class="login-hint">기본 계정 admin / admin1234</p>
+    <p id="login-error" style="color:#f87171;font-size:13px;text-align:center;margin-top:10px;display:none;"></p>
+  </div>
+</div>
+
+<!-- ── 앱 메인 ── -->
+<div id="app" style="display:none;">
+  <!-- 사이드바 -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="company">건축사업본부</div>
+      <div class="title">기술인 경력관리</div>
+      <div class="subtitle">시스템 v1.0</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">메인</div>
+      <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">📊</span> 대시보드
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">기술인</div>
+      <a class="nav-item" data-page="engineers" onclick="showPage('engineers')">
+        <span class="nav-icon">👷</span> 기술인 목록
+      </a>
+      <a class="nav-item" data-page="search" onclick="showPage('search')">
+        <span class="nav-icon">🔍</span> 전문가 검색
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">관리</div>
+      <a class="nav-item" data-page="projects" onclick="showPage('projects')">
+        <span class="nav-icon">🏢</span> 프로젝트 목록
+      </a>
+      <a class="nav-item" data-page="reports" onclick="showPage('reports')">
+        <span class="nav-icon">📄</span> 경력증명서
+      </a>
+      <a class="nav-item" data-page="upload" onclick="showPage('upload')">
+        <span class="nav-icon">📤</span> 엑셀 일괄등록
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="user-avatar" id="sidebar-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="sidebar-name">관리자</div>
+          <div class="role" id="sidebar-role">ADMIN</div>
+        </div>
+      </div>
+      <button id="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </nav>
+
+  <!-- 메인 -->
+  <div id="main">
+    <div id="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div id="page-title">대시보드</div>
+      </div>
+      <div class="topbar-right">
+        <span style="font-size:12px;color:var(--text3);" id="topbar-time"></span>
+      </div>
+    </div>
+
+    <div id="content">
+
+      <!-- ── 대시보드 ── -->
+      <div id="page-dashboard" class="page active">
+        <div class="stats-grid" id="dashboard-stats">
+          <div class="loading-overlay"><div class="spinner"></div> 로딩 중...</div>
+        </div>
+        <div class="chart-row">
+          <div class="card">
+            <div class="card-header"><div class="card-title">공사 종류별 인원 분포</div><span style="font-size:11px;color:var(--text3);">주거·업무·플랜트 등</span></div>
+            <div class="chart-container"><canvas id="chart-worktype"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">분야별 기술등급 분포</div></div>
+            <div class="chart-container"><canvas id="chart-grade"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">공종별 인원 분포</div><span style="font-size:11px;color:var(--text3);">골조·마감·설비 등</span></div>
+            <div class="chart-container"><canvas id="chart-projtype"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">경력 TOP 기술인</div>
+          </div>
+          <div class="table-wrap">
+            <table id="top-engineers-table">
+              <thead><tr><th>순위</th><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력연수</th><th>상세</th></tr></thead>
+              <tbody id="top-engineers-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 기술인 목록 ── -->
+      <div id="page-engineers" class="page">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">기술인 목록</div>
+            <button class="btn btn-primary" onclick="openEngineerModal()">+ 기술인 등록</button>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="form-control" id="eng-search-name" placeholder="이름 검색..." onkeyup="filterEngineers()">
+            <select class="form-control" id="eng-filter-dept" onchange="filterEngineers()" style="max-width:160px;">
+              <option value="">전체 부서</option>
+            </select>
+            <select class="form-control" id="eng-filter-arch-grade" onchange="filterEngineers()" style="max-width:140px;" title="건축분야 등급">
+              <option value="">건축등급 전체</option>
+              <option>특급</option><option>고급</option><option>중급</option><option>초급</option>
+            </select>
+            <select class="form-control" id="eng-filter-qual-grade" onchange="filterEngineers()" style="max-width:140px;" title="품질분야 등급">
+              <option value="">품질등급 전체</option>
+              <option>특급</option><option>고급</option><option>중급</option><option>초급</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>이름</th><th>소속부서</th><th>직급/직책</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>자격증</th><th>연락처</th><th>관리</th></tr></thead>
+              <tbody id="engineers-table-body">
+                <tr><td colspan="8" class="loading-overlay"><div class="spinner"></div> 로딩 중...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="engineers-pagination" style="display:flex;justify-content:center;gap:6px;margin-top:16px;"></div>
+        </div>
+      </div>
+
+      <!-- ── 전문가 검색 ── -->
+      <div id="page-search" class="page">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><div class="card-title">🔍 전문가 검색</div></div>
+          <div class="form-row" style="margin-bottom:12px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">이름</label>
+              <input type="text" class="form-control" id="s-name" placeholder="김건축">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">공종</label>
+              <select class="form-control" id="s-worktype">
+                <option value="">전체</option>
+                <option>골조공사</option><option>구조공사</option><option>마감공사</option>
+                <option>기계설비</option><option>전기공사</option><option>토목공사</option>
+                <option>조경공사</option><option>소방설비</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">공사유형</label>
+              <select class="form-control" id="s-projtype">
+                <option value="">전체</option>
+                <option>주거복합</option><option>공동주택</option><option>업무시설</option>
+                <option>창고시설</option><option>공공업무</option><option>플랜트</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">건축분야 등급</label>
+              <select class="form-control" id="s-arch-grade">
+                <option value="">전체</option>
+                <option>특급</option><option>고급</option><option>중급</option><option>초급</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">품질분야 등급</label>
+              <select class="form-control" id="s-qual-grade">
+                <option value="">전체</option>
+                <option>특급</option><option>고급</option><option>중급</option><option>초급</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">최소 경력</label>
+              <input type="number" class="form-control" id="s-minexp" placeholder="5" min="0" max="50">
+            </div>
+            <div class="form-group" style="margin:0;display:flex;align-items:flex-end;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2);">
+                <input type="checkbox" id="s-hascert"> 자격증 보유자만
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="doSearch()">검색</button>
+            <button class="btn btn-secondary" onclick="clearSearch()">초기화</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">검색 결과 <span id="search-count" style="font-weight:400;color:var(--text3);font-size:13px;"></span></div>
+            <button class="btn btn-success btn-sm" onclick="exportSearchResult()">📥 엑셀 다운로드</button>
+          </div>
+          <div id="search-results" class="table-wrap">
+            <div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 프로젝트 목록 ── -->
+      <div id="page-projects" class="page">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">프로젝트 목록</div>
+            <button class="btn btn-primary" onclick="openProjectModal()">+ 프로젝트 등록</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>프로젝트명</th><th>발주처</th><th>공사유형</th><th>위치</th><th>기간</th><th>규모</th></tr></thead>
+              <tbody id="projects-table-body">
+                <tr><td colspan="6" class="loading-overlay"><div class="spinner"></div> 로딩 중...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 경력증명서 ── -->
+      <div id="page-reports" class="page">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📄 경력증명서 발급</div></div>
+          <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+            <select class="form-control" id="report-engineer-select" style="max-width:240px;">
+              <option value="">기술인 선택</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadReport()">경력 조회</button>
+            <button class="btn btn-success" onclick="printReport()" id="print-btn" style="display:none;">🖨️ PDF 출력</button>
+          </div>
+          <div id="report-area"></div>
+        </div>
+      </div>
+
+      <!-- ── 엑셀 일괄등록 ── -->
+      <div id="page-upload" class="page">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <div class="card-title">📤 엑셀 일괄등록</div>
+          </div>
+          <div style="background:var(--primary-light);border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13.5px;color:var(--primary-dark);line-height:1.9;">
+            <strong>업로드 순서</strong><br>
+            ① 아래 <strong>템플릿 다운로드</strong> 버튼으로 양식 저장<br>
+            ② 시트별 데이터 입력 (①기술인 → ②경력 → ③자격증 순서 권장)<br>
+            ③ 저장 후 아래 <strong>파일 선택</strong>에서 .xlsx 업로드<br>
+            ④ <strong>미리보기 확인</strong> 후 <strong>일괄 등록</strong> 실행
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center;">
+            <a href="기술인_일괄등록_템플릿.xlsx" download class="btn btn-secondary">📥 템플릿 다운로드</a>
+            <span style="font-size:12px;color:var(--text3);">← 이 파일에 작성 후 업로드하세요</span>
+          </div>
+          <div style="border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;background:var(--surface);margin-bottom:20px;transition:border-color .15s;"
+               id="drop-zone"
+               ondragover="handleDragOver(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="handleDrop(event)">
+            <div style="font-size:32px;margin-bottom:10px;">📂</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">파일을 여기에 드래그하거나</div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">.xlsx 파일만 지원됩니다</div>
+            <label class="btn btn-primary" style="cursor:pointer;">
+              파일 선택
+              <input type="file" id="excel-file-input" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
+            </label>
+            <div id="file-selected-name" style="margin-top:10px;font-size:12px;color:var(--text2);"></div>
+          </div>
+        </div>
+        <div id="upload-preview" style="display:none;">
+          <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border);">
+            <button id="up-tab-eng"  onclick="switchUploadTab('eng')"  style="padding:9px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--primary);border-bottom:2px solid var(--primary);margin-bottom:-2px;">기술인 기본정보 <span id="up-count-eng"  class="badge badge-blue" style="margin-left:4px;"></span></button>
+            <button id="up-tab-exp"  onclick="switchUploadTab('exp')"  style="padding:9px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);">경력 상세 <span id="up-count-exp"  class="badge badge-gray" style="margin-left:4px;"></span></button>
+            <button id="up-tab-cert" onclick="switchUploadTab('cert')" style="padding:9px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);">자격증 <span id="up-count-cert" class="badge badge-gray" style="margin-left:4px;"></span></button>
+          </div>
+          <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
+            <div id="upload-table-area"></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="executeUpload()" id="exec-upload-btn">✅ 일괄 등록 실행</button>
+            <button class="btn btn-secondary" onclick="resetUpload()">다시 선택</button>
+            <span id="upload-status" style="font-size:13px;color:var(--text2);"></span>
+          </div>
+        </div>
+        <div id="upload-result" style="display:none;margin-top:16px;"></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── 기술인 등록/수정 모달 ── -->
+<div id="engineer-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="eng-modal-title">기술인 등록</div>
+      <button class="modal-close" onclick="closeModal('engineer-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('eng-tab','basic')">기본정보</div>
+        <div class="tab" onclick="switchTab('eng-tab','cert')">자격증</div>
+        <div class="tab" onclick="switchTab('eng-tab','career')">경력사항</div>
+      </div>
+
+      <div id="eng-tab-basic" class="tab-content active">
+        <input type="hidden" id="eng-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">이름 <span style="color:var(--danger)">*</span></label>
+            <input type="text" class="form-control" id="eng-name" placeholder="홍길동">
+          </div>
+          <div class="form-group">
+            <label class="form-label">생년월일</label>
+            <input type="date" class="form-control" id="eng-birth">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">연락처</label>
+            <input type="text" class="form-control" id="eng-phone" placeholder="010-0000-0000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">이메일</label>
+            <input type="email" class="form-control" id="eng-email" placeholder="name@company.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">소속부서</label>
+            <input type="text" class="form-control" id="eng-dept" placeholder="건축1팀">
+          </div>
+          <div class="form-group">
+            <label class="form-label">직급</label>
+            <select class="form-control" id="eng-position">
+              <option>사원</option><option>대리</option><option>과장</option>
+              <option>차장</option><option>부장</option><option>이사</option>
+              <option>상무</option><option>전무</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">직책</label>
+            <input type="text" class="form-control" id="eng-role" placeholder="현장소장">
+          </div>
+          <div class="form-group">
+            <label class="form-label">건축/품질 등급</label>
+            <select class="form-control" id="eng-grade">
+              <option>초급</option><option>중급</option><option>고급</option><option>특급</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">입사일</label>
+            <input type="date" class="form-control" id="eng-hiredate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">비고</label>
+            <input type="text" class="form-control" id="eng-note">
+          </div>
+        </div>
+      </div>
+
+      <div id="eng-tab-cert" class="tab-content">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <button class="btn btn-primary btn-sm" onclick="openCertForm()">+ 자격증 추가</button>
+        </div>
+        <div id="cert-form" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;">
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">자격증명 *</label>
+              <input type="text" class="form-control" id="cert-name" placeholder="건축기사">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">자격증번호</label>
+              <input type="text" class="form-control" id="cert-number">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">취득일</label>
+              <input type="date" class="form-control" id="cert-date">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">발급기관</label>
+              <input type="text" class="form-control" id="cert-issuer" placeholder="한국산업인력공단">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-primary btn-sm" onclick="saveCert()">저장</button>
+            <button class="btn btn-secondary btn-sm" onclick="closeCertForm()">취소</button>
+          </div>
+        </div>
+        <div id="cert-list"></div>
+      </div>
+
+      <div id="eng-tab-career" class="tab-content">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <button class="btn btn-primary btn-sm" onclick="openExpForm()">+ 경력 추가</button>
+        </div>
+        <div id="exp-form" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;">
+          <input type="hidden" id="exp-edit-id">
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">프로젝트명 *</label>
+              <input type="text" class="form-control" id="exp-projname" placeholder="○○ 주상복합 신축공사">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">발주처</label>
+              <input type="text" class="form-control" id="exp-client">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">시공사</label>
+              <input type="text" class="form-control" id="exp-contractor">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">공사위치</label>
+              <input type="text" class="form-control" id="exp-location" placeholder="서울 강남구">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">참여시작일 *</label>
+              <input type="date" class="form-control" id="exp-start">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">참여종료일 *</label>
+              <input type="date" class="form-control" id="exp-end">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">공사유형</label>
+              <select class="form-control" id="exp-projtype">
+                <option value="">선택</option>
+                <option>주거복합</option><option>공동주택</option><option>업무시설</option>
+                <option>창고시설</option><option>공공업무</option><option>플랜트</option>
+                <option>주거</option><option>상업시설</option><option>의료시설</option><option>교육시설</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">공종 *</label>
+              <select class="form-control" id="exp-worktype">
+                <option value="">선택</option>
+                <option>골조공사</option><option>구조공사</option><option>마감공사</option>
+                <option>기계설비</option><option>전기공사</option><option>토목공사</option>
+                <option>조경공사</option><option>소방설비</option><option>통신공사</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">직위</label>
+              <select class="form-control" id="exp-pos">
+                <option value="">선택</option>
+                <option>현장소장</option><option>공사팀장</option><option>공무담당</option>
+                <option>설비담당</option><option>전기담당</option><option>품질담당</option>
+                <option>안전담당</option><option>공사보조</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">담당업무</label>
+              <input type="text" class="form-control" id="exp-duty" placeholder="골조공사 총괄 관리">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-primary btn-sm" onclick="saveExp()">저장</button>
+            <button class="btn btn-secondary btn-sm" onclick="closeExpForm()">취소</button>
+          </div>
+        </div>
+        <div id="exp-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('engineer-modal')">닫기</button>
+      <button class="btn btn-primary" onclick="saveEngineer()" id="save-eng-btn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 프로젝트 모달 ── -->
+<div id="project-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">프로젝트 등록</div>
+      <button class="modal-close" onclick="closeModal('project-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">프로젝트명 *</label>
+          <input type="text" class="form-control" id="proj-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">공사유형</label>
+          <select class="form-control" id="proj-type">
+            <option>주거복합</option><option>공동주택</option><option>업무시설</option>
+            <option>창고시설</option><option>공공업무</option><option>플랜트</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">발주처</label>
+          <input type="text" class="form-control" id="proj-client">
+        </div>
+        <div class="form-group">
+          <label class="form-label">시공사</label>
+          <input type="text" class="form-control" id="proj-contractor">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">공사위치</label>
+          <input type="text" class="form-control" id="proj-location">
+        </div>
+        <div class="form-group">
+          <label class="form-label">공사규모 (억원)</label>
+          <input type="number" class="form-control" id="proj-scale">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">시작일</label>
+          <input type="date" class="form-control" id="proj-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">종료일</label>
+          <input type="date" class="form-control" id="proj-end">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('project-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveProject()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const API_URL = "여기에_Apps_Script_웹앱_URL_입력";
+// 예: "https://script.google.com/macros/s/AKfyc.../exec"
+
+// 분야별 기술등급 배지 렌더링
+function gradeBadge(grade) {
+  if (!grade) return '<span style="color:var(--text3);font-size:12px;">-</span>';
+  const map = { 특급: "badge-특급", 고급: "badge-고급", 중급: "badge-중급", 초급: "badge-초급" };
+  return `<span class="badge ${map[grade] || 'badge-초급'}">${grade}</span>`;
+}
+// ── 전역 상태 ──────────────────────────────────
+let TOKEN = localStorage.getItem("token") || "";
+let CURRENT_ENG_ID = null;
+let ALL_ENGINEERS = [];
+let ALL_ENGINEERS_FILTERED = [];
+let CURRENT_PAGE = 1;
+const PAGE_SIZE = 15;
+
+// ── API 호출 ────────────────────────────────────
+async function api(action, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set("action", action);
+  url.searchParams.set("token", TOKEN);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || "API 오류");
+  return json.data;
+}
+
+async function apiPost(action, body = {}) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, token: TOKEN, ...body })
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || "API 오류");
+  return json.data;
+}
+
+// ── 인증 ────────────────────────────────────────
+async function doLogin() {
+  const id = document.getElementById("login-id").value.trim();
+  const pw = document.getElementById("login-pw").value;
+  const btn = document.getElementById("login-btn-el");
+  const err = document.getElementById("login-error");
+
+  if (!id || !pw) { showLoginError("아이디와 비밀번호를 입력하세요"); return; }
+
+  btn.textContent = "로그인 중...";
+  btn.disabled = true;
+  err.style.display = "none";
+
+  try {
+    const data = await apiPost("login", { username: id, password: pw });
+    TOKEN = data.token;
+    localStorage.setItem("token", TOKEN);
+    localStorage.setItem("userRole", data.role);
+    localStorage.setItem("userName", data.name);
+
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    document.getElementById("sidebar-name").textContent = data.name;
+    document.getElementById("sidebar-role").textContent = data.role;
+    document.getElementById("sidebar-avatar").textContent = data.name.charAt(0);
+    showPage("dashboard");
+    updateClock();
+    toast("환영합니다, " + data.name + "님!", "success");
+  } catch(e) {
+    showLoginError(e.message);
+  } finally {
+    btn.textContent = "로그인";
+    btn.disabled = false;
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById("login-error");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+
+// ── 엑셀 업로드 ────────────────────────────────────────────────
+let UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
+let UPLOAD_TAB = "eng";
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById("drop-zone").style.borderColor = "var(--primary)";
+  document.getElementById("drop-zone").style.background = "var(--primary-light)";
+}
+function handleDragLeave(e) {
+  document.getElementById("drop-zone").style.borderColor = "";
+  document.getElementById("drop-zone").style.background = "";
+}
+function handleDrop(e) {
+  e.preventDefault();
+  handleDragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if (file) processExcelFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processExcelFile(file);
+}
+
+function processExcelFile(file) {
+  if (!file.name.endsWith(".xlsx")) { toast("xlsx 파일만 지원합니다", "error"); return; }
+  document.getElementById("file-selected-name").textContent = "📄 " + file.name + " 읽는 중...";
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+      UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
+
+      // ① 기술인 기본정보 시트
+      const ws1 = wb.Sheets["①기술인_기본정보"] || wb.Sheets[wb.SheetNames[0]];
+      if (ws1) {
+        const rows = XLSX.utils.sheet_to_json(ws1, { defval: "" });
+        UPLOAD_DATA.engineers = rows.map(r => ({
+          이름: String(r["이름*"] || r["이름"] || "").trim(),
+          생년월일: formatExcelDate(r["생년월일"]),
+          연락처: String(r["연락처"] || "").trim(),
+          이메일: String(r["이메일"] || "").trim(),
+          소속부서: String(r["소속부서"] || "").trim(),
+          직급: String(r["직급"] || "").trim(),
+          직책: String(r["직책"] || "").trim(),
+          건축분야등급: String(r["건축분야등급*"] || r["건축분야등급"] || "").trim(),
+          품질분야등급: String(r["품질분야등급"] || "").trim(),
+          입사일: formatExcelDate(r["입사일"]),
+          비고: String(r["비고"] || "").trim(),
+        })).filter(r => r.이름);
+      }
+
+      // ② 경력 상세 시트
+      const ws2 = wb.Sheets["②경력_프로젝트"] || wb.Sheets[wb.SheetNames[1]];
+      if (ws2) {
+        const rows = XLSX.utils.sheet_to_json(ws2, { defval: "" });
+        UPLOAD_DATA.experiences = rows.map(r => ({
+          기술인이름: String(r["기술인이름*"] || r["기술인이름"] || "").trim(),
+          프로젝트명직접입력: String(r["프로젝트명*"] || r["프로젝트명"] || "").trim(),
+          발주처: String(r["발주처"] || "").trim(),
+          시공사: String(r["시공사"] || "").trim(),
+          공사위치: String(r["공사위치"] || "").trim(),
+          참여시작일: formatExcelDate(r["참여시작일*"] || r["참여시작일"]),
+          참여종료일: formatExcelDate(r["참여종료일*"] || r["참여종료일"]),
+          공사유형: String(r["공사종류*"] || r["공사종류"] || r["공사유형"] || "").trim(),
+          공종: String(r["공종*"] || r["공종"] || "").trim(),
+          직위: String(r["직위"] || "").trim(),
+          담당업무: String(r["담당업무"] || "").trim(),
+          공사규모금액: String(r["공사규모(억원)"] || "").trim(),
+          연면적: String(r["연면적(㎡)"] || "").trim(),
+        })).filter(r => r.기술인이름 && r.프로젝트명직접입력);
+      }
+
+      // ③ 자격증 시트
+      const ws3 = wb.Sheets["③자격증"] || wb.Sheets[wb.SheetNames[2]];
+      if (ws3) {
+        const rows = XLSX.utils.sheet_to_json(ws3, { defval: "" });
+        UPLOAD_DATA.certifications = rows.map(r => ({
+          기술인이름: String(r["기술인이름*"] || r["기술인이름"] || "").trim(),
+          자격증명: String(r["자격증명*"] || r["자격증명"] || "").trim(),
+          자격증번호: String(r["자격증번호"] || "").trim(),
+          취득일: formatExcelDate(r["취득일"]),
+          발급기관: String(r["발급기관"] || "").trim(),
+        })).filter(r => r.기술인이름 && r.자격증명);
+      }
+
+      document.getElementById("file-selected-name").textContent =
+        `✅ ${file.name} — 기술인 ${UPLOAD_DATA.engineers.length}명 · 경력 ${UPLOAD_DATA.experiences.length}건 · 자격증 ${UPLOAD_DATA.certifications.length}건`;
+
+      // 카운트 배지
+      document.getElementById("up-count-eng").textContent = UPLOAD_DATA.engineers.length + "명";
+      document.getElementById("up-count-exp").textContent = UPLOAD_DATA.experiences.length + "건";
+      document.getElementById("up-count-cert").textContent = UPLOAD_DATA.certifications.length + "건";
+
+      document.getElementById("upload-preview").style.display = "block";
+      document.getElementById("upload-result").style.display = "none";
+      switchUploadTab("eng");
+
+    } catch(err) {
+      toast("파일 읽기 오류: " + err.message, "error");
+      document.getElementById("file-selected-name").textContent = "";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function formatExcelDate(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth()+1).padStart(2,"0");
+    const d = String(val.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(val).trim();
+  // 이미 YYYY-MM-DD 형식이면 그대로
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // YYYYMMDD
+  if (/^\d{8}$/.test(s)) return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+  return s;
+}
+
+function switchUploadTab(tab) {
+  UPLOAD_TAB = tab;
+  ["eng","exp","cert"].forEach(t => {
+    const btn = document.getElementById("up-tab-" + t);
+    if (!btn) return;
+    const isOn = t === tab;
+    btn.style.color = isOn ? "var(--primary)" : "var(--text2)";
+    btn.style.fontWeight = isOn ? "700" : "600";
+    btn.style.borderBottom = isOn ? "2px solid var(--primary)" : "none";
+  });
+  renderUploadPreview();
+}
+
+function renderUploadPreview() {
+  const area = document.getElementById("upload-table-area");
+  if (UPLOAD_TAB === "eng") {
+    const data = UPLOAD_DATA.engineers;
+    if (!data.length) { area.innerHTML = '<div class="empty-state"><p>기술인 데이터 없음</p></div>'; return; }
+    area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead style="background:var(--surface);">
+        <tr>
+          ${["이름","생년월일","연락처","소속부서","직급","직책","건축분야등급","품질분야등급","입사일"].map(h=>
+            `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);white-space:nowrap;">${h}</th>`
+          ).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map((r,i) => `<tr style="${i%2===0?'':'background:var(--surface)'}">
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);"><strong>${r.이름}</strong></td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.생년월일||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.연락처||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.소속부서||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직급||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직책||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.건축분야등급 ? `<span class="badge badge-고급">${r.건축분야등급}</span>` : "-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.품질분야등급 ? `<span class="badge badge-특급">${r.품질분야등급}</span>` : "-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.입사일||"-"}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div>`;
+  } else if (UPLOAD_TAB === "exp") {
+    const data = UPLOAD_DATA.experiences;
+    if (!data.length) { area.innerHTML = '<div class="empty-state"><p>경력 데이터 없음</p></div>'; return; }
+    area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead style="background:var(--surface);">
+        <tr>
+          ${["기술인","프로젝트명","발주처","공사위치","참여기간","공사종류","공종","직위"].map(h=>
+            `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);white-space:nowrap;">${h}</th>`
+          ).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map((r,i) => `<tr style="${i%2===0?'':'background:var(--surface)'}">
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;">${r.기술인이름}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.프로젝트명직접입력}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.발주처||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.공사위치||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;">${r.참여시작일} ~ ${r.참여종료일}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);"><span class="badge badge-blue">${r.공사유형||"-"}</span></td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.공종||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직위||"-"}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div>`;
+  } else {
+    const data = UPLOAD_DATA.certifications;
+    if (!data.length) { area.innerHTML = '<div class="empty-state"><p>자격증 데이터 없음</p></div>'; return; }
+    area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead style="background:var(--surface);">
+        <tr>
+          ${["기술인","자격증명","자격증번호","취득일","발급기관"].map(h=>
+            `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);">${h}</th>`
+          ).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map((r,i) => `<tr style="${i%2===0?'':'background:var(--surface)'}">
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;">${r.기술인이름}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.자격증명}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.자격증번호||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.취득일||"-"}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.발급기관||"-"}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div>`;
+  }
+}
+
+async function executeUpload() {
+  const btn = document.getElementById("exec-upload-btn");
+  const status = document.getElementById("upload-status");
+  const eng = UPLOAD_DATA.engineers;
+  const exp = UPLOAD_DATA.experiences;
+  const cert = UPLOAD_DATA.certifications;
+
+  if (!eng.length && !exp.length && !cert.length) {
+    toast("등록할 데이터가 없습니다", "error"); return;
+  }
+
+  const total = eng.length + exp.length + cert.length;
+  if (!confirm(`총 ${total}건을 등록하시겠습니까?
+기술인 ${eng.length}명 · 경력 ${exp.length}건 · 자격증 ${cert.length}건`)) return;
+
+  btn.disabled = true;
+  btn.textContent = "등록 중...";
+  status.textContent = "";
+
+  let succeeded = 0, failed = 0, errors = [];
+
+  // ① 기술인 등록
+  for (const e of eng) {
+    try {
+      status.textContent = `기술인 등록 중... (${succeeded+1}/${eng.length})`;
+      await apiPost("addEngineer", e);
+      succeeded++;
+    } catch(err) {
+      failed++;
+      errors.push(`기술인 "${e.이름}": ${err.message}`);
+    }
+  }
+
+  // ② 기술인ID 매핑 (이름 → ID)
+  let nameToId = {};
+  try {
+    const engineers = await api("getEngineers");
+    engineers.forEach(e => { nameToId[e["이름"]] = e["ID"]; });
+  } catch(err) {}
+
+  // ③ 경력 등록 (기술인 이름 → ID 매핑)
+  for (const e of exp) {
+    try {
+      const engId = nameToId[e.기술인이름];
+      if (!engId) { failed++; errors.push(`경력 "${e.기술인이름}": 기술인을 찾을 수 없음`); continue; }
+      status.textContent = `경력 등록 중... (${succeeded}건 완료)`;
+      await apiPost("addExperience", { ...e, 기술인ID: engId });
+      succeeded++;
+    } catch(err) {
+      failed++;
+      errors.push(`경력 "${e.프로젝트명직접입력}": ${err.message}`);
+    }
+  }
+
+  // ④ 자격증 등록
+  for (const c of cert) {
+    try {
+      const engId = nameToId[c.기술인이름];
+      if (!engId) { failed++; errors.push(`자격증 "${c.기술인이름}": 기술인을 찾을 수 없음`); continue; }
+      status.textContent = `자격증 등록 중... (${succeeded}건 완료)`;
+      await apiPost("addCert", { ...c, 기술인ID: engId });
+      succeeded++;
+    } catch(err) {
+      failed++;
+      errors.push(`자격증 "${c.자격증명}": ${err.message}`);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = "✅ 일괄 등록 실행";
+  status.textContent = "";
+
+  // 결과 표시
+  const resultEl = document.getElementById("upload-result");
+  resultEl.style.display = "block";
+  resultEl.innerHTML = `
+    <div style="padding:16px 20px;border-radius:10px;border:1px solid ${failed===0?'#a7f3d0':'#fecaca'};background:${failed===0?'#d1fae5':'#fee2e2'};">
+      <div style="font-size:15px;font-weight:700;color:${failed===0?'#065f46':'#991b1b'};margin-bottom:8px;">
+        ${failed===0 ? "✅ 일괄 등록 완료!" : "⚠️ 일부 오류 발생"}
+      </div>
+      <div style="font-size:13px;color:${failed===0?'#047857':'#b91c1c'};">
+        성공 <strong>${succeeded}건</strong>${failed>0 ? ` · 실패 <strong>${failed}건</strong>` : ""}
+      </div>
+      ${errors.length ? `<details style="margin-top:10px;"><summary style="font-size:12px;cursor:pointer;color:#b91c1c;">오류 상세 보기 (${errors.length}건)</summary>
+        <ul style="margin-top:6px;font-size:12px;color:#991b1b;padding-left:16px;">${errors.map(e=>`<li>${e}</li>`).join("")}</ul>
+      </details>` : ""}
+      ${failed===0 ? `<button class="btn btn-primary" style="margin-top:12px;" onclick="showPage('engineers')">기술인 목록 보기 →</button>` : ""}
+    </div>
+  `;
+  if (failed === 0) toast(`${succeeded}건 등록 완료!`, "success");
+  else toast(`${succeeded}건 완료, ${failed}건 실패`, "error");
+}
+
+function resetUpload() {
+  document.getElementById("upload-preview").style.display = "none";
+  document.getElementById("upload-result").style.display = "none";
+  document.getElementById("file-selected-name").textContent = "";
+  document.getElementById("excel-file-input").value = "";
+  UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
+}
+
+function doLogout() {
+  TOKEN = "";
+  localStorage.clear();
+  location.reload();
+}
+
+// 이미 토큰 있으면 자동 로그인
+window.addEventListener("load", () => {
+  if (TOKEN) {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    const name = localStorage.getItem("userName") || "사용자";
+    const role = localStorage.getItem("userRole") || "";
+    document.getElementById("sidebar-name").textContent = name;
+    document.getElementById("sidebar-role").textContent = role;
+    document.getElementById("sidebar-avatar").textContent = name.charAt(0);
+    showPage("dashboard");
+    updateClock();
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+});
+
+// ── 페이지 전환 ─────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + page).classList.add("active");
+  const navItem = document.querySelector(`[data-page="${page}"]`);
+  if (navItem) navItem.classList.add("active");
+
+  const titles = {
+    dashboard: "대시보드", engineers: "기술인 목록",
+    search: "전문가 검색", projects: "프로젝트 목록", reports: "경력증명서", upload: "엑셀 일괄등록"
+  };
+  document.getElementById("page-title").textContent = titles[page] || "";
+
+  // 페이지별 데이터 로딩
+  if (page === "dashboard") loadDashboard();
+  else if (page === "engineers") loadEngineers();
+  else if (page === "projects") loadProjects();
+  else if (page === "reports") loadReportEngineers();
+
+  // 모바일: 사이드바 닫기
+  document.getElementById("sidebar").classList.remove("open");
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
+// ── 대시보드 ────────────────────────────────────
+let chartsInitialized = false;
+let chartWorktype, chartGrade, chartProjtype;
+
+async function loadDashboard() {
+  try {
+    const data = await api("getDashboard");
+    renderDashboardStats(data);
+    renderCharts(data);
+    renderTopEngineers(data.경력TOP5);
+  } catch(e) {
+    toast("대시보드 로딩 실패: " + e.message, "error");
+  }
+}
+
+function renderDashboardStats(data) {
+  document.getElementById("dashboard-stats").innerHTML = `
+    <div class="stat-card" style="--card-color:#1a56db">
+      <div class="stat-label">전체 기술인</div>
+      <div class="stat-value">${data.총기술인수}</div>
+      <div class="stat-sub">명</div>
+    </div>
+    <div class="stat-card" style="--card-color:#f59e0b">
+      <div class="stat-label">등록 프로젝트</div>
+      <div class="stat-value">${data.총프로젝트수}</div>
+      <div class="stat-sub">건</div>
+    </div>
+    <div class="stat-card" style="--card-color:#10b981">
+      <div class="stat-label">보유 자격증</div>
+      <div class="stat-value">${data.총자격증수}</div>
+      <div class="stat-sub">건</div>
+    </div>
+    <div class="stat-card" style="--card-color:#8b5cf6">
+      <div class="stat-label">특급 기술인</div>
+      <div class="stat-value">${(data.기술등급분포.건축["특급"]||0) + (data.기술등급분포.품질["특급"]||0)}</div>
+      <div class="stat-sub">명</div>
+    </div>
+  `;
+}
+
+function renderCharts(data) {
+  const palette = ["#1a56db","#f59e0b","#10b981","#ef4444","#8b5cf6","#ec4899","#06b6d4"];
+
+  if (chartWorktype) chartWorktype.destroy();
+  if (chartGrade) chartGrade.destroy();
+  if (chartProjtype) chartProjtype.destroy();
+
+  // 공사 종류별 인원 분포 (메인 차트 — 종합건설업 핵심 지표)
+  const pt = data.공사종류별분포 || [];
+  chartWorktype = new Chart(document.getElementById("chart-worktype"), {
+    type: "bar",
+    data: {
+      labels: pt.map(x => x.공사종류),
+      datasets: [{
+        label: "기술인 수",
+        data: pt.map(x => x.인원),
+        backgroundColor: palette,
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: pt.length > 5 ? "y" : "x",
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      responsive: true, maintainAspectRatio: false
+    }
+  });
+
+  // 기술등급 분포 - 건축/품질 분야별 그룹 바 차트
+  const gd = data.기술등급분포 || { 건축: {}, 품질: {} };
+  const gradeLabels = ["특급","고급","중급","초급"];
+  chartGrade = new Chart(document.getElementById("chart-grade"), {
+    type: "bar",
+    data: {
+      labels: gradeLabels,
+      datasets: [
+        { label: "건축분야", data: gradeLabels.map(g => gd.건축[g] || 0), backgroundColor: "#1a56db", borderRadius: 5 },
+        { label: "품질분야", data: gradeLabels.map(g => gd.품질[g] || 0), backgroundColor: "#f59e0b", borderRadius: 5 }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: "top" } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      responsive: true, maintainAspectRatio: false
+    }
+  });
+
+  // 공종별 인원 (보조 차트)
+  const wt = data.공종별분포 || [];
+  chartProjtype = new Chart(document.getElementById("chart-projtype"), {
+    type: "bar",
+    data: {
+      labels: wt.map(x => x.공종),
+      datasets: [{
+        label: "기술인 수",
+        data: wt.map(x => x.인원),
+        backgroundColor: palette.slice(2),
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      responsive: true, maintainAspectRatio: false
+    }
+  });
+}
+
+function renderTopEngineers(list) {
+  document.getElementById("top-engineers-body").innerHTML = (list || []).map((e,i) => `
+    <tr>
+      <td><strong>${i+1}</strong></td>
+      <td><strong style="cursor:pointer;color:var(--primary);" onclick="openEngineerDetail('${e.id}')">${e.이름}</strong></td>
+      <td>${e.소속부서 || "-"}</td>
+      <td>${gradeBadge(e.건축분야등급)}</td><td>${gradeBadge(e.품질분야등급)}</td>
+      <td><strong>${e.총경력연수}년</strong></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openEngineerDetail('${e.id}')">상세보기</button></td>
+    </tr>
+  `).join("") || "<tr><td colspan='6' style='text-align:center;color:var(--text3);'>데이터 없음</td></tr>";
+}
+
+// ── 기술인 목록 ─────────────────────────────────
+async function loadEngineers() {
+  try {
+    ALL_ENGINEERS = await api("getEngineers");
+    ALL_ENGINEERS_FILTERED = [...ALL_ENGINEERS];
+    populateDeptFilter();
+    renderEngineersTable();
+  } catch(e) {
+    toast("기술인 로딩 실패: " + e.message, "error");
+  }
+}
+
+function populateDeptFilter() {
+  const depts = [...new Set(ALL_ENGINEERS.map(e=>e["소속부서"]).filter(Boolean))];
+  const sel = document.getElementById("eng-filter-dept");
+  sel.innerHTML = '<option value="">전체 부서</option>' + depts.map(d=>`<option>${d}</option>`).join("");
+}
+
+function filterEngineers() {
+  const name = document.getElementById("eng-search-name").value.trim().toLowerCase();
+  const dept = document.getElementById("eng-filter-dept").value;
+  ALL_ENGINEERS_FILTERED = ALL_ENGINEERS.filter(e => {
+    if (name && !e["이름"].toLowerCase().includes(name)) return false;
+    if (dept && e["소속부서"] !== dept) return false;
+    const archGrade = document.getElementById("eng-filter-arch-grade").value;
+    const qualGrade = document.getElementById("eng-filter-qual-grade").value;
+    if (archGrade && e["건축분야등급"] !== archGrade) return false;
+    if (qualGrade && e["품질분야등급"] !== qualGrade) return false;
+    return true;
+  });
+  CURRENT_PAGE = 1;
+  renderEngineersTable();
+}
+
+function renderEngineersTable() {
+  const total = ALL_ENGINEERS_FILTERED.length;
+  const start = (CURRENT_PAGE - 1) * PAGE_SIZE;
+  const pageData = ALL_ENGINEERS_FILTERED.slice(start, start + PAGE_SIZE);
+
+  document.getElementById("engineers-table-body").innerHTML = pageData.length ? pageData.map(e => `
+    <tr>
+      <td><strong style="cursor:pointer;color:var(--primary);" onclick="openEngineerDetail('${e.ID}')">${e["이름"]}</strong></td>
+      <td>${e["소속부서"] || "-"}</td>
+      <td>${e["직급"] || ""} / ${e["직책"] || ""}</td>
+      <td>${gradeBadge(e["건축분야등급"])}</td><td>${gradeBadge(e["품질분야등급"])}</td><td>${e["총경력연수"]}년</td>
+      <td id="cert-count-${e.ID}">-</td>
+      <td>${e["연락처"] || "-"}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="openEngineerDetail('${e.ID}')">상세</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteEngineer('${e.ID}','${e["이름"]}')">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join("") : `<tr><td colspan="8" class="empty-state"><div class="empty-icon">👷</div><p>기술인 데이터가 없습니다</p></td></tr>`;
+
+  // 페이지네이션
+  renderPagination(total, "engineers-pagination");
+}
+
+function renderPagination(total, containerId) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const el = document.getElementById(containerId);
+  if (pages <= 1) { el.innerHTML = ""; return; }
+  el.innerHTML = Array.from({length: pages}, (_,i) =>
+    `<button class="btn btn-sm ${i+1===CURRENT_PAGE?'btn-primary':'btn-secondary'}" onclick="goPage(${i+1})">${i+1}</button>`
+  ).join("");
+}
+
+function goPage(p) {
+  CURRENT_PAGE = p;
+  renderEngineersTable();
+}
+
+// ── 기술인 상세 / 등록 모달 ─────────────────────
+async function openEngineerDetail(id) {
+  CURRENT_ENG_ID = id;
+  try {
+    const eng = await api("getEngineer", { id });
+    document.getElementById("eng-id").value = eng.ID;
+    document.getElementById("eng-name").value = eng["이름"] || "";
+    document.getElementById("eng-birth").value = eng["생년월일"] || "";
+    document.getElementById("eng-phone").value = eng["연락처"] || "";
+    document.getElementById("eng-email").value = eng["이메일"] || "";
+    document.getElementById("eng-dept").value = eng["소속부서"] || "";
+    document.getElementById("eng-position").value = eng["직급"] || "대리";
+    document.getElementById("eng-role").value = eng["직책"] || "";
+    document.getElementById("eng-arch-grade").value = eng["건축분야등급"] || "";
+    document.getElementById("eng-qual-grade").value = eng["품질분야등급"] || "";
+    document.getElementById("eng-hiredate").value = eng["입사일"] || "";
+    document.getElementById("eng-note").value = eng["비고"] || "";
+    document.getElementById("eng-modal-title").textContent = eng["이름"] + " 상세 / 수정";
+    document.getElementById("save-eng-btn").textContent = "수정 저장";
+
+    openModal("engineer-modal");
+    switchTab("eng-tab", "basic");
+    loadCertList(id);
+    loadExpList(id);
+  } catch(e) {
+    toast("로딩 실패: " + e.message, "error");
+  }
+}
+
+function openEngineerModal() {
+  CURRENT_ENG_ID = null;
+  document.getElementById("eng-id").value = "";
+  ["eng-name","eng-birth","eng-phone","eng-email","eng-dept","eng-role","eng-hiredate","eng-note"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("eng-arch-grade").value = "";
+  document.getElementById("eng-qual-grade").value = "";
+  document.getElementById("eng-position").value = "사원";
+  document.getElementById("eng-modal-title").textContent = "기술인 등록";
+  document.getElementById("save-eng-btn").textContent = "등록";
+  document.getElementById("cert-list").innerHTML = "";
+  document.getElementById("exp-list").innerHTML = "";
+  openModal("engineer-modal");
+  switchTab("eng-tab", "basic");
+}
+
+async function saveEngineer() {
+  const id = document.getElementById("eng-id").value;
+  const body = {
+    이름: document.getElementById("eng-name").value.trim(),
+    생년월일: document.getElementById("eng-birth").value,
+    연락처: document.getElementById("eng-phone").value,
+    이메일: document.getElementById("eng-email").value,
+    소속부서: document.getElementById("eng-dept").value,
+    직급: document.getElementById("eng-position").value,
+    직책: document.getElementById("eng-role").value,
+    건축분야등급: document.getElementById("eng-arch-grade").value,
+    품질분야등급: document.getElementById("eng-qual-grade").value,
+    입사일: document.getElementById("eng-hiredate").value,
+    비고: document.getElementById("eng-note").value,
+  };
+  if (!body.이름) { toast("이름은 필수입니다", "error"); return; }
+
+  try {
+    if (id) {
+      await apiPost("updateEngineer", { ...body, id });
+      toast("수정 완료", "success");
+    } else {
+      await apiPost("addEngineer", body);
+      toast("등록 완료", "success");
+    }
+    closeModal("engineer-modal");
+    loadEngineers();
+  } catch(e) {
+    toast("저장 실패: " + e.message, "error");
+  }
+}
+
+async function deleteEngineer(id, name) {
+  if (!confirm(`"${name}"을(를) 삭제하시겠습니까?\n관련 경력 데이터도 함께 관리하세요.`)) return;
+  try {
+    await apiPost("deleteEngineer", { id });
+    toast("삭제 완료", "success");
+    loadEngineers();
+  } catch(e) {
+    toast("삭제 실패: " + e.message, "error");
+  }
+}
+
+// ── 자격증 관리 ─────────────────────────────────
+async function loadCertList(engId) {
+  try {
+    const certs = await api("getCerts", { engineerId: engId });
+    document.getElementById("cert-list").innerHTML = certs.length
+      ? certs.map(c => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;margin-bottom:8px;">
+          <div>
+            <strong>${c["자격증명"]}</strong>
+            <span style="color:var(--text3);font-size:12px;margin-left:8px;">${c["자격증번호"] || ""}</span>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">취득일: ${c["취득일"] || "-"} | ${c["발급기관"] || ""}</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteCert('${c["ID"]}')">삭제</button>
+        </div>
+      `).join("")
+      : '<div class="empty-state"><p>등록된 자격증이 없습니다</p></div>';
+  } catch(e) {}
+}
+
+function openCertForm() { document.getElementById("cert-form").style.display = "block"; }
+function closeCertForm() { document.getElementById("cert-form").style.display = "none"; }
+
+async function saveCert() {
+  const name = document.getElementById("cert-name").value.trim();
+  if (!name) { toast("자격증명 입력", "error"); return; }
+  if (!CURRENT_ENG_ID) { toast("먼저 기술인을 저장하세요", "error"); return; }
+  try {
+    await apiPost("addCert", {
+      기술인ID: CURRENT_ENG_ID,
+      자격증명: name,
+      자격증번호: document.getElementById("cert-number").value,
+      취득일: document.getElementById("cert-date").value,
+      발급기관: document.getElementById("cert-issuer").value,
+    });
+    toast("자격증 등록 완료", "success");
+    closeCertForm();
+    loadCertList(CURRENT_ENG_ID);
+  } catch(e) { toast("저장 실패: " + e.message, "error"); }
+}
+
+async function deleteCert(id) {
+  if (!confirm("자격증을 삭제하시겠습니까?")) return;
+  try {
+    await apiPost("deleteCert", { id });
+    loadCertList(CURRENT_ENG_ID);
+    toast("삭제 완료", "success");
+  } catch(e) { toast("삭제 실패", "error"); }
+}
+
+// ── 경력 관리 ────────────────────────────────────
+async function loadExpList(engId) {
+  try {
+    const exps = await api("getExperiences", { engineerId: engId });
+    document.getElementById("exp-list").innerHTML = exps.length
+      ? exps.map(e => `
+        <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <strong style="font-size:14px;">${e["프로젝트명직접입력"] || "-"}</strong>
+              <span class="badge badge-blue" style="margin-left:8px;">${e["공종"] || ""}</span>
+              <span class="badge badge-gray" style="margin-left:4px;">${e["공사유형"] || ""}</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="editExp('${e["ID"]}')">수정</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteExp('${e["ID"]}')">삭제</button>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;">
+            <span>📅 ${e["참여시작일"]} ~ ${e["참여종료일"]} (${e["기간표시"]})</span>
+            <span>🏢 ${e["발주처"] || "-"}</span>
+            <span>👤 ${e["직위"] || "-"}</span>
+          </div>
+          ${e["담당업무"] ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">업무: ${e["담당업무"]}</div>` : ""}
+        </div>
+      `).join("")
+      : '<div class="empty-state"><p>등록된 경력이 없습니다</p></div>';
+  } catch(e) {}
+}
+
+function openExpForm() {
+  document.getElementById("exp-edit-id").value = "";
+  ["exp-projname","exp-client","exp-contractor","exp-location","exp-start","exp-end","exp-duty"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("exp-form").style.display = "block";
+}
+function closeExpForm() { document.getElementById("exp-form").style.display = "none"; }
+
+async function saveExp() {
+  const editId = document.getElementById("exp-edit-id").value;
+  if (!CURRENT_ENG_ID) { toast("기술인을 먼저 저장하세요", "error"); return; }
+
+  const body = {
+    기술인ID: CURRENT_ENG_ID,
+    프로젝트명직접입력: document.getElementById("exp-projname").value.trim(),
+    발주처: document.getElementById("exp-client").value,
+    시공사: document.getElementById("exp-contractor").value,
+    공사위치: document.getElementById("exp-location").value,
+    참여시작일: document.getElementById("exp-start").value,
+    참여종료일: document.getElementById("exp-end").value,
+    공사유형: document.getElementById("exp-projtype").value,
+    공종: document.getElementById("exp-worktype").value,
+    직위: document.getElementById("exp-pos").value,
+    담당업무: document.getElementById("exp-duty").value,
+  };
+  if (!body.프로젝트명직접입력 || !body.참여시작일 || !body.참여종료일) {
+    toast("프로젝트명, 시작일, 종료일은 필수입니다", "error"); return;
+  }
+  try {
+    if (editId) {
+      await apiPost("updateExperience", { ...body, id: editId });
+    } else {
+      await apiPost("addExperience", body);
+    }
+    toast("경력 저장 완료", "success");
+    closeExpForm();
+    loadExpList(CURRENT_ENG_ID);
+  } catch(e) { toast("저장 실패: " + e.message, "error"); }
+}
+
+async function editExp(id) {
+  try {
+    const exps = await api("getExperiences", { engineerId: CURRENT_ENG_ID });
+    const exp = exps.find(e => e["ID"] === id);
+    if (!exp) return;
+    document.getElementById("exp-edit-id").value = id;
+    document.getElementById("exp-projname").value = exp["프로젝트명직접입력"] || "";
+    document.getElementById("exp-client").value = exp["발주처"] || "";
+    document.getElementById("exp-contractor").value = exp["시공사"] || "";
+    document.getElementById("exp-location").value = exp["공사위치"] || "";
+    document.getElementById("exp-start").value = exp["참여시작일"] || "";
+    document.getElementById("exp-end").value = exp["참여종료일"] || "";
+    document.getElementById("exp-projtype").value = exp["공사유형"] || "";
+    document.getElementById("exp-worktype").value = exp["공종"] || "";
+    document.getElementById("exp-pos").value = exp["직위"] || "";
+    document.getElementById("exp-duty").value = exp["담당업무"] || "";
+    document.getElementById("exp-form").style.display = "block";
+  } catch(e) {}
+}
+
+async function deleteExp(id) {
+  if (!confirm("이 경력을 삭제하시겠습니까?")) return;
+  try {
+    await apiPost("deleteExperience", { id });
+    toast("삭제 완료", "success");
+    loadExpList(CURRENT_ENG_ID);
+  } catch(e) { toast("삭제 실패", "error"); }
+}
+
+// ── 검색 ────────────────────────────────────────
+async function doSearch() {
+  const params = {
+    name: document.getElementById("s-name").value,
+    workType: document.getElementById("s-worktype").value,
+    projectType: document.getElementById("s-projtype").value,
+    archGrade: document.getElementById("s-arch-grade").value,
+    qualGrade: document.getElementById("s-qual-grade").value,
+    minExp: document.getElementById("s-minexp").value,
+    hasCert: document.getElementById("s-hascert").checked ? "1" : "",
+    sortBy: "exp"
+  };
+  const area = document.getElementById("search-results");
+  area.innerHTML = '<div class="loading-overlay"><div class="spinner"></div> 검색 중...</div>';
+  try {
+    const results = await api("searchEngineers", params);
+    document.getElementById("search-count").textContent = `(${results.length}명)`;
+    if (!results.length) {
+      area.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 결과가 없습니다</p></div>';
+      return;
+    }
+    area.innerHTML = `<table>
+      <thead><tr><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>주요공종</th><th>자격증</th><th>연락처</th><th>상세</th></tr></thead>
+      <tbody>${results.map(e => `
+        <tr>
+          <td><strong>${e["이름"]}</strong></td>
+          <td>${e["소속부서"] || "-"}</td>
+          <td>${gradeBadge(e["건축분야등급"])}</td><td>${gradeBadge(e["품질분야등급"])}</td>
+          <td><strong>${e.총경력연수}년</strong></td>
+          <td>${[...new Set((e.경력목록||[]).map(x=>x["공종"]).filter(Boolean))].slice(0,2).join(", ") || "-"}</td>
+          <td>${(e.자격증목록||[]).length > 0 ? `<span class="badge badge-green">✓ ${e.자격증목록.length}건</span>` : "-"}</td>
+          <td>${e["연락처"] || "-"}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="openEngineerDetail('${e.ID}');showPage('engineers')">상세</button></td>
+        </tr>
+      `).join("")}</tbody>
+    </table>`;
+    window._searchResults = results;
+  } catch(e) {
+    area.innerHTML = `<div class="empty-state"><p style="color:var(--danger);">오류: ${e.message}</p></div>`;
+  }
+}
+
+function clearSearch() {
+  ["s-name","s-minexp"].forEach(id => document.getElementById(id).value = "");
+  ["s-worktype","s-projtype","s-arch-grade","s-qual-grade"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("s-hascert").checked = false;
+  document.getElementById("search-results").innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>';
+  document.getElementById("search-count").textContent = "";
+}
+
+function exportSearchResult() {
+  const results = window._searchResults;
+  if (!results || !results.length) { toast("검색 결과가 없습니다", "error"); return; }
+  const rows = [["이름","소속부서","건축분야등급","품질분야등급","총경력연수","주요공종","자격증수","연락처"]];
+  results.forEach(e => rows.push([
+    e["이름"], e["소속부서"]||"", e["건축분야등급"]||"", e["품질분야등급"]||"",
+    e.총경력연수,
+    [...new Set((e.경력목록||[]).map(x=>x["공종"]).filter(Boolean))].join(", "),
+    (e.자격증목록||[]).length,
+    e["연락처"]||""
+  ]));
+  downloadCSV(rows, "전문가검색결과.csv");
+}
+
+// ── 프로젝트 ────────────────────────────────────
+async function loadProjects() {
+  try {
+    const projs = await api("getProjects");
+    document.getElementById("projects-table-body").innerHTML = projs.length
+      ? projs.map(p => `<tr>
+          <td><strong>${p["프로젝트명"]}</strong></td>
+          <td>${p["발주처"] || "-"}</td>
+          <td><span class="badge badge-blue">${p["공사유형"] || "-"}</span></td>
+          <td>${p["위치"] || "-"}</td>
+          <td style="font-size:12px;">${p["시작일"] || ""} ~ ${p["종료일"] || ""}</td>
+          <td>${p["공사규모금액"] ? numberWithCommas(p["공사규모금액"]) + "원" : "-"}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="6" class="empty-state"><p>프로젝트 없음</p></td></tr>`;
+  } catch(e) { toast("프로젝트 로딩 실패", "error"); }
+}
+
+function openProjectModal() { openModal("project-modal"); }
+
+async function saveProject() {
+  const name = document.getElementById("proj-name").value.trim();
+  if (!name) { toast("프로젝트명 필수", "error"); return; }
+  try {
+    await apiPost("addProject", {
+      프로젝트명: name,
+      발주처: document.getElementById("proj-client").value,
+      시공사: document.getElementById("proj-contractor").value,
+      위치: document.getElementById("proj-location").value,
+      시작일: document.getElementById("proj-start").value,
+      종료일: document.getElementById("proj-end").value,
+      공사유형: document.getElementById("proj-type").value,
+      공사규모금액: (document.getElementById("proj-scale").value || 0) * 100000000,
+    });
+    toast("프로젝트 등록 완료", "success");
+    closeModal("project-modal");
+    loadProjects();
+  } catch(e) { toast("저장 실패: " + e.message, "error"); }
+}
+
+// ── 경력증명서 ──────────────────────────────────
+async function loadReportEngineers() {
+  try {
+    const engineers = await api("getEngineers");
+    const sel = document.getElementById("report-engineer-select");
+    sel.innerHTML = '<option value="">기술인 선택</option>' +
+      engineers.map(e => `<option value="${e.ID}">${e["이름"]} (${e["소속부서"]||""})</option>`).join("");
+  } catch(e) {}
+}
+
+async function loadReport() {
+  const id = document.getElementById("report-engineer-select").value;
+  if (!id) { toast("기술인을 선택하세요", "error"); return; }
+  try {
+    const data = await api("getCareerReport", { engineerId: id });
+    renderReport(data);
+    document.getElementById("print-btn").style.display = "inline-flex";
+  } catch(e) { toast("로딩 실패: " + e.message, "error"); }
+}
+
+function renderReport(data) {
+  const eng = data.기술인;
+  const exps = data.경력목록;
+  const certs = data.자격증목록;
+  const wtStats = data.공종별경력;
+
+  document.getElementById("report-area").innerHTML = `
+    <div id="pdf-preview">
+      <h1>기술경력증명서</h1>
+
+      <div class="section-title">1. 인적사항</div>
+      <table>
+        <tr><th width="120">성 명</th><td>${eng["이름"]}</td><th width="120">생년월일</th><td>${eng["생년월일"] || "-"}</td></tr>
+        <tr><th>소속부서</th><td>${eng["소속부서"] || "-"}</td><th>직 급</th><td>${eng["직급"] || "-"}</td></tr>
+        <tr><th>건축분야등급</th><td><strong>${eng["건축분야등급"] || "-"}</strong></td><th>품질분야등급</th><td><strong>${eng["품질분야등급"] || "-"}</strong></td></tr>
+        <tr><th>총경력연수</th><td colspan="3"><strong>${eng["총경력연수"]}년 (중복기간 제거)</strong></td></tr>
+        <tr><th>연락처</th><td>${eng["연락처"] || "-"}</td><th>입사일</th><td>${eng["입사일"] || "-"}</td></tr>
+      </table>
+
+      <div class="section-title">2. 자격증 현황</div>
+      <table>
+        <tr><th>자격증명</th><th>자격증번호</th><th>취득일</th><th>발급기관</th></tr>
+        ${certs.length ? certs.map(c=>`<tr><td>${c["자격증명"]}</td><td>${c["자격증번호"]||"-"}</td><td>${c["취득일"]||"-"}</td><td>${c["발급기관"]||"-"}</td></tr>`).join("") : "<tr><td colspan='4' style='text-align:center'>-</td></tr>"}
+      </table>
+
+      <div class="section-title">3. 공종별 경력 요약</div>
+      <table>
+        <tr><th>공종</th><th>경력기간</th></tr>
+        ${wtStats.map(w=>`<tr><td>${w.공종}</td><td>${w.기간표시}</td></tr>`).join("")}
+        <tr><th>합계</th><th>${eng["총경력연수"]}년 (중복제거)</th></tr>
+      </table>
+
+      <div class="section-title">4. 경력 상세 (기술인협회 기준)</div>
+      <table>
+        <tr><th>No</th><th>프로젝트명</th><th>발주처</th><th>시공사</th><th>위치</th><th>참여기간</th><th>공종</th><th>직위</th><th>담당업무</th></tr>
+        ${exps.map((e,i)=>`
+          <tr>
+            <td style="text-align:center">${i+1}</td>
+            <td>${e["프로젝트명직접입력"]||"-"}</td>
+            <td>${e["발주처"]||"-"}</td>
+            <td>${e["시공사"]||"-"}</td>
+            <td>${e["공사위치"]||"-"}</td>
+            <td style="white-space:nowrap">${e["참여시작일"]}~${e["참여종료일"]}<br><small>(${e["기간표시"]})</small></td>
+            <td>${e["공종"]||"-"}</td>
+            <td>${e["직위"]||"-"}</td>
+            <td>${e["담당업무"]||"-"}</td>
+          </tr>
+        `).join("")}
+      </table>
+
+      <div style="margin-top:40px;text-align:right;font-size:12px;color:#666;">
+        발급일: ${new Date().toLocaleDateString("ko-KR")} | 건축사업본부 기술인 경력관리 시스템
+      </div>
+    </div>
+  `;
+}
+
+function printReport() {
+  const content = document.getElementById("pdf-preview").outerHTML;
+  const w = window.open("", "_blank");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>경력증명서</title>
+    <style>
+      body { font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif; font-size:12px; }
+      h1 { font-size:20px; text-align:center; border-bottom:3px solid #000; padding-bottom:10px; margin-bottom:24px; }
+      .section-title { font-size:14px; font-weight:700; background:#f0f0f0; padding:6px 10px; margin:16px 0 8px; }
+      table { width:100%; border-collapse:collapse; }
+      td, th { border:1px solid #ccc; padding:6px 8px; font-size:11.5px; }
+      th { background:#e8e8e8; font-weight:700; }
+      @media print { body { margin:0; } }
+    </style></head><body>${content}<script>window.print();<\/script></body></html>`);
+  w.document.close();
+}
+
+// ── 유틸리티 ────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+function switchTab(group, tab) {
+  document.querySelectorAll(`#${group}-${tab}`).forEach(el => el.classList.add("active"));
+  document.querySelectorAll(`.tab-content`).forEach(el => {
+    if (el.id.startsWith(group + "-")) el.classList.remove("active");
+  });
+  document.getElementById(`${group}-${tab}`).classList.add("active");
+
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  event.target.classList.add("active");
+}
+
+function toast(msg, type = "info") {
+  const container = document.getElementById("toast-container");
+  const el = document.createElement("div");
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function numberWithCommas(x) {
+  return Number(x).toLocaleString("ko-KR");
+}
+
+function updateClock() {
+  const el = document.getElementById("topbar-time");
+  if (el) el.textContent = new Date().toLocaleString("ko-KR");
+}
+
+function downloadCSV(rows, filename) {
+  const BOM = "\uFEFF";
+  const csv = BOM + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 모달 바깥 클릭 닫기
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) overlay.classList.remove("open");
+  });
+});
+
+// ESC 키 닫기
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  }
+});
+</script>
+</body>
+</html>
