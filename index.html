@@ -635,7 +635,7 @@ tr:hover td { background: var(--surface); }
             ④ <strong>미리보기 확인</strong> 후 <strong>일괄 등록</strong> 실행
           </div>
           <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center;">
-            <a href="기술인_일괄등록_템플릿.xlsx" download class="btn btn-secondary">📥 템플릿 다운로드</a>
+            <button class="btn btn-secondary" onclick="downloadTemplate()">📥 템플릿 다운로드</button>
             <span style="font-size:12px;color:var(--text3);">← 이 파일에 작성 후 업로드하세요</span>
           </div>
           <div style="border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;background:var(--surface);margin-bottom:20px;transition:border-color .15s;"
@@ -1334,6 +1334,127 @@ async function executeUpload() {
   `;
   if (failed === 0) toast(`${succeeded}건 등록 완료!`, "success");
   else toast(`${succeeded}건 완료, ${failed}건 실패`, "error");
+}
+
+
+function downloadTemplate() {
+  if (typeof XLSX === 'undefined') { toast("잠시 후 다시 시도하세요 (라이브러리 로딩 중)", "error"); return; }
+
+  const wb = XLSX.utils.book_new();
+  const REQ = { font: { bold: true, color: { rgb: "991B1B" } }, fill: { fgColor: { rgb: "FFF1F2" } }, alignment: { horizontal: "center", wrapText: true }, border: { top:{style:"thin",color:{rgb:"CBD5E1"}}, bottom:{style:"thin",color:{rgb:"CBD5E1"}}, left:{style:"thin",color:{rgb:"CBD5E1"}}, right:{style:"thin",color:{rgb:"CBD5E1"}} } };
+  const OPT = { font: { bold: true, color: { rgb: "1E40AF" } }, fill: { fgColor: { rgb: "EBF0FB" } }, alignment: { horizontal: "center", wrapText: true }, border: REQ.border };
+  const ARCH= { font: { bold: true, color: { rgb: "1E40AF" } }, fill: { fgColor: { rgb: "EFF6FF" } }, alignment: { horizontal: "center", wrapText: true }, border: REQ.border };
+  const QUAL= { font: { bold: true, color: { rgb: "92400E" } }, fill: { fgColor: { rgb: "FFFBEB" } }, alignment: { horizontal: "center", wrapText: true }, border: REQ.border };
+  const TTL = { font: { bold: true, sz: 13, color: { rgb: "0C447C" } }, fill: { fgColor: { rgb: "E8F0FB" } }, alignment: { horizontal: "center" } };
+  const GDE = { font: { sz: 9, color: { rgb: "92400E" } }, fill: { fgColor: { rgb: "FEF9C3" } }, alignment: { horizontal: "left" } };
+  const EX  = { font: { italic: true, color: { rgb: "94A3B8" } }, alignment: { horizontal: "center" } };
+
+  function makeSheet(headers, styleMap, rows, title, guide) {
+    const wsData = [
+      [title],
+      [guide],
+      headers,
+      ...rows
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const colCount = headers.length;
+
+    // 타이틀 병합
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: colCount - 1 } },
+    ];
+
+    // 스타일 적용
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const addr = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!ws[addr]) ws[addr] = { v: "", t: "s" };
+        if (R === 0) ws[addr].s = TTL;
+        else if (R === 1) ws[addr].s = GDE;
+        else if (R === 2) ws[addr].s = styleMap[C] || OPT;
+        else ws[addr].s = EX;
+      }
+    }
+
+    // 열 너비
+    ws["!cols"] = styleMap.widths.map(w => ({ wch: w }));
+    // 행 높이
+    ws["!rows"] = [{ hpt: 24 }, { hpt: 18 }, { hpt: 28 }];
+    return ws;
+  }
+
+  // ── ① 기술인 기본정보 ──────────────────────────────
+  const h1 = ["사번*","이름*","생년월일","연락처","이메일","소속부서","직급","직책","건축분야등급*","품질분야등급","입사일","비고"];
+  const s1 = { 0:REQ, 1:REQ, 2:OPT, 3:OPT, 4:OPT, 5:OPT, 6:OPT, 7:OPT, 8:ARCH, 9:QUAL, 10:OPT, 11:OPT,
+               widths:[14,12,13,16,22,12,10,10,14,14,13,18] };
+  const r1 = [
+    ["EMP001","홍길동","1975-03-15","010-1234-5678","hong@company.com","건축1팀","부장","현장소장","특급","특급","2005-03-01",""],
+    ["EMP002","김철수","1980-07-22","010-2345-6789","kim@company.com","건축2팀","차장","공사팀장","고급","중급","2008-06-15",""],
+  ];
+  const ws1 = makeSheet(h1, s1, r1,
+    "🏗️  기술인 경력관리 시스템 — 기술인 기본정보",
+    "※ 사번·이름·건축분야등급은 필수  |  사번은 경력/자격증 시트와 매핑 기준  |  날짜: YYYY-MM-DD  |  빨간=필수, 파란=선택, 노란=품질분야");
+  XLSX.utils.book_append_sheet(wb, ws1, "①기술인_기본정보");
+
+  // ── ② 경력 상세 ───────────────────────────────────
+  const h2 = ["기술인사번*","기술인이름*","프로젝트명*","발주처","시공사","공사위치","참여시작일*","참여종료일*","공사종류*","공종*","직위","담당업무","공사규모(억원)","연면적(㎡)","비고"];
+  const s2 = { 0:REQ, 1:REQ, 2:REQ, 3:OPT, 4:OPT, 5:OPT, 6:REQ, 7:REQ, 8:REQ, 9:REQ, 10:OPT, 11:OPT, 12:OPT, 13:OPT, 14:OPT,
+               widths:[14,12,22,16,16,14,13,13,14,12,12,24,14,12,18] };
+  const r2 = [
+    ["EMP001","홍길동","강남 XX 주상복합","XX건설(주)","XX건설(주)","서울 강남구","2018-03-01","2021-06-30","주거복합","골조공사","현장소장","골조공사 총괄 관리","850","52000",""],
+    ["EMP001","홍길동","부산 BB 아파트","BB주택공사","CC건설","부산 해운대구","2017-06-01","2018-02-28","공동주택","골조공사","현장소장","골조공사 감리","2000","95000",""],
+    ["EMP002","김철수","판교 YY 오피스","YY부동산","ZZ건설","경기 성남시","2019-05-15","2022-08-31","업무시설","구조공사","공사팀장","고층 구조공사 관리","1200","38000",""],
+  ];
+  const ws2 = makeSheet(h2, s2, r2,
+    "🏗️  경력(프로젝트) 상세 — 기술인협회 경력증명서 기준",
+    "※ 기술인사번은 ①시트 사번과 정확히 일치해야 함 (동명이인 구분 기준)  |  공사종류·공종은 ④코드표 참고  |  날짜: YYYY-MM-DD");
+  XLSX.utils.book_append_sheet(wb, ws2, "②경력_프로젝트");
+
+  // ── ③ 자격증 ──────────────────────────────────────
+  const h3 = ["기술인사번*","기술인이름*","자격증명*","자격증번호","취득일","발급기관","비고"];
+  const s3 = { 0:REQ, 1:REQ, 2:REQ, 3:OPT, 4:OPT, 5:OPT, 6:OPT,
+               widths:[14,12,20,18,13,20,18] };
+  const r3 = [
+    ["EMP001","홍길동","건축사","2005-12345","2005-08-20","대한건축사협회",""],
+    ["EMP001","홍길동","건설안전기사","2003-56789","2003-05-10","한국산업인력공단",""],
+    ["EMP002","김철수","건축구조기술사","2010-11111","2010-11-15","한국산업인력공단",""],
+  ];
+  const ws3 = makeSheet(h3, s3, r3,
+    "🏗️  자격증 입력",
+    "※ 기술인사번은 ①시트 사번과 정확히 일치해야 함  |  날짜: YYYY-MM-DD");
+  XLSX.utils.book_append_sheet(wb, ws3, "③자격증");
+
+  // ── ④ 코드표 ──────────────────────────────────────
+  const codeData = [
+    ["공사 종류","","공종","","기술등급","","직위","","직급",""],
+    ["주거복합","","골조공사","","초급","","현장소장","","사원",""],
+    ["공동주택","","구조공사","","중급","","공사팀장","","대리",""],
+    ["업무시설","","마감공사","","고급","","공무담당","","과장",""],
+    ["판매시설","","기계설비","","특급","","설비담당","","차장",""],
+    ["창고물류","","전기공사","","","","전기담당","","부장",""],
+    ["공공업무","","소방설비","","건축/품질 각각 입력","","안전담당","","이사",""],
+    ["교육시설","","통신공사","","","","품질담당","","상무",""],
+    ["의료시설","","토목공사","","","","공사보조","","전무",""],
+    ["호텔리조트","","조경공사","","","","","","",""],
+    ["플랜트","","인테리어","","","","","","",""],
+    ["토목","","품질관리","","","","","","",""],
+    ["기타","","안전관리","","","","","","",""],
+  ];
+  const wsCode = XLSX.utils.aoa_to_sheet([
+    ["📋  코드표 — 입력 시 아래 값을 그대로 사용하세요"],
+    [""],
+    ...codeData
+  ]);
+  wsCode["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:9} }];
+  wsCode["!cols"] = [14,2,14,2,14,2,14,2,10,2].map(w=>({wch:w}));
+  if (wsCode["A1"]) wsCode["A1"].s = TTL;
+  XLSX.utils.book_append_sheet(wb, wsCode, "④코드표_참고");
+
+  // ── 다운로드 ──────────────────────────────────────
+  XLSX.writeFile(wb, "기술인_일괄등록_템플릿.xlsx");
+  toast("템플릿 다운로드 완료!", "success");
 }
 
 function resetUpload() {
