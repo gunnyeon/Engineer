@@ -728,11 +728,12 @@ tr:hover td { background: var(--surface); }
           </div>
           <div class="form-group">
             <label class="form-label">직급</label>
-            <select class="form-control" id="eng-position">
-              <option>사원</option><option>대리</option><option>과장</option>
-              <option>차장</option><option>부장</option><option>이사</option>
-              <option>상무</option><option>전무</option>
-            </select>
+            <input type="text" class="form-control" id="eng-position" placeholder="직급 직접 입력 (예: 부장, S2, P3 등)" list="position-datalist">
+            <datalist id="position-datalist">
+              <option>사원</option><option>주임</option><option>대리</option>
+              <option>과장</option><option>차장</option><option>부장</option>
+              <option>수석</option><option>이사</option><option>상무</option><option>전무</option>
+            </datalist>
           </div>
         </div>
         <div class="form-row">
@@ -1824,7 +1825,7 @@ async function openEngineerDetail(id) {
     document.getElementById("eng-phone").value = eng["연락처"] || "";
     document.getElementById("eng-email").value = eng["이메일"] || "";
     document.getElementById("eng-dept").value = eng["소속부서"] || "";
-    document.getElementById("eng-position").value = eng["직급"] || "대리";
+    document.getElementById("eng-position").value = eng["직급"] || "";
     document.getElementById("eng-role").value = eng["직책"] || "";
     document.getElementById("eng-arch-grade").value = eng["건축분야등급"] || "";
     document.getElementById("eng-qual-grade").value = eng["품질분야등급"] || "";
@@ -1850,7 +1851,7 @@ function openEngineerModal() {
   });
   document.getElementById("eng-arch-grade").value = "";
   document.getElementById("eng-qual-grade").value = "";
-  document.getElementById("eng-position").value = "사원";
+  document.getElementById("eng-position").value = "";
   document.getElementById("eng-modal-title").textContent = "기술인 등록";
   document.getElementById("save-eng-btn").textContent = "등록";
   document.getElementById("cert-list").innerHTML = "";
