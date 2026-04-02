@@ -532,10 +532,17 @@ tr:hover td { background: var(--surface); }
               <input type="text" class="form-control" id="s-name" placeholder="김건축">
             </div>
             <div class="form-group" style="margin:0;">
-              <label class="form-label">공사유형</label>
-              <select class="form-control" id="s-projtype">
-                <option value="">전체</option>
-              </select>
+              <label class="form-label">공사유형 <span style="font-size:10px;color:var(--text3);">(복수 선택 가능)</span></label>
+              <div id="s-projtype-wrap" style="border:1.5px solid var(--border);border-radius:7px;background:var(--bg2);position:relative;">
+                <div id="s-projtype-display" onclick="toggleProjtypeDropdown()"
+                  style="padding:9px 12px;cursor:pointer;font-size:14px;color:var(--text);display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                  <span id="s-projtype-label" style="color:var(--text3);">전체 (선택 안함)</span>
+                  <span style="font-size:10px;color:var(--text3);">▼</span>
+                </div>
+                <div id="s-projtype-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--border);border-top:none;border-radius:0 0 7px 7px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-md);">
+                  <div id="s-projtype-options" style="padding:4px 0;"></div>
+                </div>
+              </div>
             </div>
             <div class="form-group" style="margin:0;">
               <label class="form-label">담당업무 <span style="font-size:10px;color:var(--text3);">(복수 선택 가능)</span></label>
@@ -549,6 +556,14 @@ tr:hover td { background: var(--surface); }
                   <div id="s-worktype-options" style="padding:4px 0;"></div>
                 </div>
               </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">책임정도</label>
+              <select class="form-control" id="s-chaegim">
+                <option value="">전체</option>
+                <option value="책임자">책임자</option>
+                <option value="보조자">보조자</option>
+              </select>
             </div>
             <div class="form-group" style="margin:0;">
               <label class="form-label">건축분야 등급</label>
@@ -964,7 +979,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbyngnYS6oUZUkCECj58E1hGBG-rnQJVW6MNQ07cdBs2UuXe_o4Nlne08w51Qz6RU-DBvA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwZ4B1SIsx4n7tqdX3SUkthY0fg03E0Y_A-g8LM6Rj02EgqiBCoD4aJ9811f6aOYVvKUA/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -2111,9 +2126,13 @@ async function loadSearchFilters() {
         });
       } catch(e) {}
     }
-    const ptSel = document.getElementById("s-projtype");
-    ptSel.innerHTML = '<option value="">전체</option>' +
-      [...projtypes].sort().map(v=>`<option>${v}</option>`).join("");
+    const ptOpts = document.getElementById("s-projtype-options");
+    ptOpts.innerHTML = [...projtypes].sort().map(v =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="checkbox" class="pt-checkbox" value="${v}" onchange="updateProjtypeLabel()">
+        ${v}
+      </label>`
+    ).join("");
     // 담당업무 체크박스 동적 생성
     const wtOpts = document.getElementById("s-worktype-options");
     wtOpts.innerHTML = [...worktypes].sort().map(v =>
@@ -2123,6 +2142,30 @@ async function loadSearchFilters() {
       </label>`
     ).join("");
   } catch(e) {}
+}
+
+// 공사유형 다중선택 헬퍼
+function toggleProjtypeDropdown() {
+  const dd = document.getElementById("s-projtype-dropdown");
+  dd.style.display = dd.style.display === "none" ? "block" : "none";
+}
+function getSelectedProjtypes() {
+  return [...document.querySelectorAll(".pt-checkbox:checked")].map(c => c.value);
+}
+function clearProjtypeSelection() {
+  document.querySelectorAll(".pt-checkbox").forEach(c => c.checked = false);
+  updateProjtypeLabel();
+}
+function updateProjtypeLabel() {
+  const selected = getSelectedProjtypes();
+  const label = document.getElementById("s-projtype-label");
+  if (selected.length === 0) {
+    label.textContent = "전체 (선택 안함)";
+    label.style.color = "var(--text3)";
+  } else {
+    label.textContent = selected.join(", ");
+    label.style.color = "var(--text)";
+  }
 }
 
 // 담당업무 다중선택 헬퍼
@@ -2150,6 +2193,13 @@ function updateWorktypeLabel() {
 }
 // 드롭다운 외부 클릭 시 닫기
 document.addEventListener("click", function(e) {
+  // 공사유형 드롭다운
+  const ptWrap = document.getElementById("s-projtype-wrap");
+  if (ptWrap && !ptWrap.contains(e.target)) {
+    const ptDd = document.getElementById("s-projtype-dropdown");
+    if (ptDd) ptDd.style.display = "none";
+  }
+  // 담당업무 드롭다운
   const wrap = document.getElementById("s-worktype-wrap");
   if (wrap && !wrap.contains(e.target)) {
     const dd = document.getElementById("s-worktype-dropdown");
@@ -2161,7 +2211,8 @@ async function doSearch() {
   const params = {
     name: document.getElementById("s-name").value,
     workType: getSelectedWorktypes().join(","),   // 담당업무 (쉼표 구분 복수)
-    projectType: document.getElementById("s-projtype").value, // 공사유형
+    projectType: getSelectedProjtypes().join(","), // 공사유형 (복수)
+    chaegim: document.getElementById("s-chaegim").value, // 책임정도
     archGrade: document.getElementById("s-arch-grade").value,
     qualGrade: document.getElementById("s-qual-grade").value,
     minExp: document.getElementById("s-minexp").value,
@@ -2215,7 +2266,8 @@ async function doSearch() {
 
 function clearSearch() {
   ["s-name","s-minexp"].forEach(id => document.getElementById(id).value = "");
-  ["s-projtype","s-arch-grade","s-qual-grade","s-certtype"].forEach(id => document.getElementById(id).value = "");
+  ["s-arch-grade","s-qual-grade","s-certtype","s-chaegim"].forEach(id => document.getElementById(id).value = "");
+  clearProjtypeSelection();
   clearWorktypeSelection();
   document.getElementById("search-results").innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>';
   document.getElementById("search-count").textContent = "";
