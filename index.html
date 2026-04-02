@@ -561,8 +561,6 @@ tr:hover td { background: var(--surface); }
               <label class="form-label">책임정도</label>
               <select class="form-control" id="s-chaegim">
                 <option value="">전체</option>
-                <option value="책임자">책임자</option>
-                <option value="보조자">보조자</option>
               </select>
             </div>
             <div class="form-group" style="margin:0;">
@@ -850,13 +848,21 @@ tr:hover td { background: var(--surface); }
           </div>
           <div class="form-row" style="margin-top:8px;">
             <div class="form-group" style="margin:0;">
-              <label class="form-label">공사유형</label>
-              <select class="form-control" id="exp-projtype">
-                <option value="">선택</option>
-                <option>주거복합</option><option>공동주택</option><option>업무시설</option>
-                <option>창고시설</option><option>공공업무</option><option>플랜트</option>
-                <option>주거</option><option>상업시설</option><option>의료시설</option><option>교육시설</option>
-              </select>
+              <label class="form-label">공사유형 대구분</label>
+              <input type="text" class="form-control" id="exp-projtype-major" placeholder="예: 주거, 비주거, 토목" list="projtype-major-list">
+              <datalist id="projtype-major-list">
+                <option>주거</option><option>비주거</option><option>토목</option><option>플랜트</option><option>기타</option>
+              </datalist>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">공사유형 소구분</label>
+              <input type="text" class="form-control" id="exp-projtype" placeholder="예: 공동주택, 업무시설, 교육시설" list="projtype-minor-list">
+              <datalist id="projtype-minor-list">
+                <option>공동주택</option><option>주상복합</option><option>단독주택</option>
+                <option>업무시설</option><option>상업시설</option><option>판매시설</option>
+                <option>교육시설</option><option>의료시설</option><option>공공시설</option>
+                <option>창고물류</option><option>공장</option><option>숙박시설</option>
+              </datalist>
             </div>
             <div class="form-group" style="margin:0;">
               <label class="form-label">공법</label>
@@ -979,7 +985,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbwZ4B1SIsx4n7tqdX3SUkthY0fg03E0Y_A-g8LM6Rj02EgqiBCoD4aJ9811f6aOYVvKUA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwsmwPpjdCrCVV8PTD63H6q919Adlk89djBug51KU4_DCjqiTPiCZFpf1F9Fz4pFwJtwQ/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -1182,7 +1188,8 @@ function processExcelFile(file) {
             참여시작일:       start,
             참여종료일:       end,
             인정일수:        injung,
-            공사유형:        String(r["공사종류*"] || r["공사종류"] || r["공사유형"] || "").trim(),
+            공사유형_대구분: String(r["공사유형_대구분*"] || r["공사유형_대구분"] || r["공사종류*"] || r["공사종류"] || "").trim(),
+            공사유형_소구분: String(r["공사유형_소구분"] || "").trim(),
             공법:           String(r["공법"] || "").trim(),
             직무분야:        String(r["직무분야"] || "").trim(),
             전문분야:        String(r["전문분야"] || 공종구버전 || "").trim(),  // 구버전 공종 → 전문분야
@@ -1303,7 +1310,7 @@ function renderUploadPreview() {
   } else if (UPLOAD_TAB === "exp") {
     const data = UPLOAD_DATA.experiences;
     if (!data.length) { area.innerHTML = '<div class="empty-state"><p>경력 데이터 없음</p></div>'; return; }
-    const headers = ["사번","이름","프로젝트명","발주처","참여기간","인정일수","공사종류","공법","직무분야","전문분야","책임정도","직위"];
+    const headers = ["사번","이름","프로젝트명","발주처","참여기간","인정일수","대구분","소구분","공법","직무분야","전문분야","책임정도","직위"];
     area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
       <thead style="background:var(--surface);"><tr>${headers.map(th).join("")}</tr></thead>
       <tbody>${data.map((r,i) => tr(i,
@@ -1312,7 +1319,8 @@ function renderUploadPreview() {
         td(r.프로젝트명직접입력) + td(r.발주처) +
         `<td style="padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;">${fmtDate(r.참여시작일)} ~ ${fmtDate(r.참여종료일)}</td>` +
         td(r.인정일수) +
-        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${badge(r.공사유형,"badge-blue")}</td>` +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${badge(r.공사유형_대구분,"badge-blue")}</td>` +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${r.공사유형_소구분||"-"}</td>` +
         td(r.공법) + td(r.직무분야) + td(r.전문분야) + td(r.책임정도) + td(r.직위)
       )).join("")}</tbody>
     </table></div>`;
@@ -1500,13 +1508,13 @@ function downloadTemplate() {
   XLSX.utils.book_append_sheet(wb, ws1, "①기술인_기본정보");
 
   // ── ② 경력 상세 ───────────────────────────────────
-  const h2 = ["기술인사번*","기술인이름*","프로젝트명*","발주처","시공사","참여시작일*","참여종료일*","인정일수","공사종류*","공법","직무분야","전문분야","책임정도","담당업무","직위","비고"];
-  const s2 = { 0:REQ, 1:REQ, 2:REQ, 3:OPT, 4:OPT, 5:REQ, 6:REQ, 7:OPT, 8:REQ, 9:OPT, 10:OPT, 11:OPT, 12:OPT, 13:OPT, 14:OPT, 15:OPT,
-               widths:[14,12,22,16,16,13,13,10,14,12,12,12,12,24,12,18] };
+  const h2 = ["기술인사번*","기술인이름*","프로젝트명*","발주처","시공사","참여시작일*","참여종료일*","인정일수","공사유형_대구분*","공사유형_소구분","공법","직무분야","전문분야","책임정도","담당업무","직위","비고"];
+  const s2 = { 0:REQ, 1:REQ, 2:REQ, 3:OPT, 4:OPT, 5:REQ, 6:REQ, 7:OPT, 8:REQ, 9:OPT, 10:OPT, 11:OPT, 12:OPT, 13:OPT, 14:OPT, 15:OPT, 16:OPT,
+               widths:[14,12,22,16,16,13,13,10,14,14,12,12,12,12,24,12,18] };
   const r2 = [
-    ["EMP001","홍길동","강남 XX 주상복합","XX건설(주)","XX건설(주)","2018-03-01","2021-06-30","","주거복합","RC조","건축","골조","책임자","골조공사 총괄 관리","현장소장",""],
-    ["EMP001","홍길동","부산 BB 아파트","BB주택공사","CC건설","2017-06-01","2018-02-28","","공동주택","RC조","건축","골조","책임자","골조공사 감리","현장소장",""],
-    ["EMP002","김철수","판교 YY 오피스","YY부동산","ZZ건설","2019-05-15","2022-08-31","","업무시설","철골조","건축","구조","보조자","고층 구조공사 관리","공사팀장",""],
+    ["EMP001","홍길동","강남 XX 주상복합","XX건설(주)","XX건설(주)","2018-03-01","2021-06-30","","주거","공동주택","RC조","건축","골조","책임자","골조공사 총괄 관리","현장소장",""],
+    ["EMP001","홍길동","부산 BB 아파트","BB주택공사","CC건설","2017-06-01","2018-02-28","","주거","공동주택","RC조","건축","골조","책임자","골조공사 감리","현장소장",""],
+    ["EMP002","김철수","판교 YY 오피스","YY부동산","ZZ건설","2019-05-15","2022-08-31","","비주거","업무시설","철골조","건축","구조","보조자","고층 구조공사 관리","공사팀장",""],
   ];
   const ws2 = makeSheet(h2, s2, r2,
     "🏗️  경력(프로젝트) 상세 — 기술인협회 경력증명서 기준",
@@ -1634,6 +1642,14 @@ async function loadDashboard() {
     renderDashboardStats(data);
     renderCharts(data);
     renderTopEngineers(data.경력TOP5);
+    // 책임정도 목록 동적 세팅
+    if (data.책임정도목록 && data.책임정도목록.length) {
+      const sel = document.getElementById("s-chaegim");
+      if (sel) {
+        sel.innerHTML = '<option value="">전체</option>' +
+          data.책임정도목록.map(v => `<option value="${v}">${v}</option>`).join("");
+      }
+    }
   } catch(e) {
     toast("대시보드 로딩 실패: " + e.message, "error");
   }
@@ -1991,8 +2007,8 @@ async function loadExpList(engId) {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
             <div>
               <strong style="font-size:14px;">${e["프로젝트명직접입력"] || "-"}</strong>
-              <span class="badge badge-blue" style="margin-left:8px;">${e["직무분야"] || ""}</span>
-              <span class="badge badge-gray" style="margin-left:4px;">${e["전문분야"] || ""}</span>
+              <span class="badge badge-blue" style="margin-left:8px;">${e["공사유형_대구분"] || e["공사유형"] || ""}</span>
+              <span class="badge badge-gray" style="margin-left:4px;">${e["공사유형_소구분"] || ""}</span>
               <span class="badge badge-orange" style="margin-left:4px;">${e["책임정도"] || ""}</span>
             </div>
             <div style="display:flex;gap:6px;">
@@ -2017,7 +2033,7 @@ async function loadExpList(engId) {
 function openExpForm() {
   document.getElementById("exp-edit-id").value = "";
   ["exp-projname","exp-client","exp-contractor","exp-start","exp-end",
-   "exp-gongbeop","exp-jikmu","exp-jeonmun","exp-injung","exp-duty"].forEach(id => {
+   "exp-projtype-major","exp-gongbeop","exp-jikmu","exp-jeonmun","exp-injung","exp-duty"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("exp-chaegim").value = "";
@@ -2047,7 +2063,8 @@ async function saveExp() {
     참여시작일: startVal,
     참여종료일: endVal,
     인정일수: injungDays,
-    공사유형: document.getElementById("exp-projtype").value,
+    공사유형_대구분: document.getElementById("exp-projtype-major").value,
+    공사유형_소구분: document.getElementById("exp-projtype").value,
     공법: document.getElementById("exp-gongbeop").value,
     직무분야: document.getElementById("exp-jikmu").value,
     전문분야: document.getElementById("exp-jeonmun").value,
@@ -2088,7 +2105,8 @@ async function editExp(id) {
     document.getElementById("exp-start").value = exp["참여시작일"] || "";
     document.getElementById("exp-end").value = exp["참여종료일"] || "";
     document.getElementById("exp-injung").value = exp["인정일수"] || "";
-    document.getElementById("exp-projtype").value = exp["공사유형"] || "";
+    document.getElementById("exp-projtype-major").value = exp["공사유형_대구분"] || exp["공사유형"] || "";
+    document.getElementById("exp-projtype").value = exp["공사유형_소구분"] || "";
     document.getElementById("exp-gongbeop").value = exp["공법"] || "";
     document.getElementById("exp-jikmu").value = exp["직무분야"] || "";
     document.getElementById("exp-jeonmun").value = exp["전문분야"] || "";
@@ -2121,7 +2139,9 @@ async function loadSearchFilters() {
       try {
         const exps = await api("getExperiences", { engineerId: eng.ID });
         exps.forEach(e => {
-          if (e["공사유형"]) projtypes.add(e["공사유형"]);
+          if (e["공사유형_대구분"]) projtypes.add(e["공사유형_대구분"]);
+          if (e["공사유형_소구분"]) projtypes.add(e["공사유형_소구분"]);
+          if (e["공사유형"]) projtypes.add(e["공사유형"]); // 구버전 호환
           if (e["담당업무"]) worktypes.add(e["담당업무"]);
         });
       } catch(e) {}
@@ -2381,7 +2401,7 @@ function renderReport(data) {
 
       <div class="section-title">4. 경력 상세 (기술인협회 기준)</div>
       <table>
-        <tr><th>No</th><th>프로젝트명</th><th>발주처</th><th>시공사</th><th>참여기간</th><th>인정일수</th><th>공사유형</th><th>공법</th><th>직무분야</th><th>전문분야</th><th>책임정도</th><th>직위</th><th>담당업무</th></tr>
+        <tr><th>No</th><th>프로젝트명</th><th>발주처</th><th>시공사</th><th>참여기간</th><th>인정일수</th><th>대구분</th><th>소구분</th><th>공법</th><th>직무분야</th><th>전문분야</th><th>책임정도</th><th>직위</th><th>담당업무</th></tr>
         ${exps.map((e,i)=>`
           <tr>
             <td style="text-align:center">${i+1}</td>
@@ -2390,7 +2410,8 @@ function renderReport(data) {
             <td>${e["시공사"]||"-"}</td>
             <td style="white-space:nowrap">${fmtDate(e["참여시작일"])}~${fmtDate(e["참여종료일"])}<br><small>(${e["기간표시"]})</small></td>
             <td style="text-align:center">${e["인정일수"]||"-"}</td>
-            <td>${e["공사유형"]||"-"}</td>
+            <td>${e["공사유형_대구분"]||e["공사유형"]||"-"}</td>
+            <td>${e["공사유형_소구분"]||"-"}</td>
             <td>${e["공법"]||"-"}</td>
             <td>${e["직무분야"]||"-"}</td>
             <td>${e["전문분야"]||"-"}</td>
