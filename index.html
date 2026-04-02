@@ -1240,81 +1240,61 @@ function switchUploadTab(tab) {
 
 function renderUploadPreview() {
   const area = document.getElementById("upload-table-area");
+  const td = (v, mono) => mono
+    ? `<td style="padding:7px 10px;border-bottom:1px solid var(--border);font-family:monospace;font-size:11px;color:var(--text3);">${v||"-"}</td>`
+    : `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${v||"-"}</td>`;
+  const th = (v) => `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);white-space:nowrap;">${v}</th>`;
+  const badge = (v, cls) => v ? `<span class="badge ${cls}">${v}</span>` : "-";
+  const tr = (i, cells) => `<tr style="${i%2===0?'':'background:var(--surface)'}">${cells}</tr>`;
+
   if (UPLOAD_TAB === "eng") {
     const data = UPLOAD_DATA.engineers;
     if (!data.length) { area.innerHTML = '<div class="empty-state"><p>기술인 데이터 없음</p></div>'; return; }
+    const headers = ["사번","이름","생년월일","연락처","소속부서","직급","직책","건축분야등급","품질분야등급","입사일"];
     area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
-      <thead style="background:var(--surface);">
-        <tr>
-          ${["이름","생년월일","연락처","소속부서","직급","직책","건축분야등급","품질분야등급","입사일"].map(h=>
-            `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);white-space:nowrap;">${h}</th>`
-          ).join("")}
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map((r,i) => `<tr style="${i%2===0?'':'background:var(--surface)'}">
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-family:monospace;">${r.사번||'-'}</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);"><strong>${r.이름}</strong></td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.생년월일||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.연락처||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.소속부서||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직급||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직책||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.건축분야등급 ? `<span class="badge badge-고급">${r.건축분야등급}</span>` : "-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.품질분야등급 ? `<span class="badge badge-특급">${r.품질분야등급}</span>` : "-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.입사일||"-"}</td>
-        </tr>`).join("")}
-      </tbody>
+      <thead style="background:var(--surface);"><tr>${headers.map(th).join("")}</tr></thead>
+      <tbody>${data.map((r,i) => tr(i,
+        td(r.사번, true) +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);"><strong>${r.이름||"-"}</strong></td>` +
+        td(r.생년월일) + td(r.연락처) + td(r.소속부서) + td(r.직급) + td(r.직책) +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${badge(r.건축분야등급,"badge-고급")}</td>` +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${badge(r.품질분야등급,"badge-특급")}</td>` +
+        td(r.입사일)
+      )).join("")}</tbody>
     </table></div>`;
+
   } else if (UPLOAD_TAB === "exp") {
     const data = UPLOAD_DATA.experiences;
     if (!data.length) { area.innerHTML = '<div class="empty-state"><p>경력 데이터 없음</p></div>'; return; }
+    const headers = ["사번","이름","프로젝트명","발주처","참여기간","인정일수","공사종류","공법","직무분야","전문분야","책임정도","직위"];
     area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
-      <thead style="background:var(--surface);">
-        <tr>
-          ${["기술인","프로젝트명","발주처","참여기간","인정일수","공사종류","공법","직무분야","전문분야","책임정도","직위"].map(h=>
-            `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);white-space:nowrap;">${h}</th>`
-          ).join("")}
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map((r,i) => `<tr style="${i%2===0?'':'background:var(--surface)'}">
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-family:monospace;">${r.기술인사번||'-'}</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;">${r.기술인이름}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.프로젝트명직접입력}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.발주처||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;">${r.참여시작일} ~ ${r.참여종료일}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.인정일수||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);"><span class="badge badge-blue">${r.공사유형||"-"}</span></td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.공법||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직무분야||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.전문분야||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.책임정도||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.직위||"-"}</td>
-        </tr>`).join("")}
-      </tbody>
+      <thead style="background:var(--surface);"><tr>${headers.map(th).join("")}</tr></thead>
+      <tbody>${data.map((r,i) => tr(i,
+        td(r.기술인사번, true) +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:600;">${r.기술인이름||"-"}</td>` +
+        td(r.프로젝트명직접입력) + td(r.발주처) +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;">${r.참여시작일||""} ~ ${r.참여종료일||""}</td>` +
+        td(r.인정일수) +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);">${badge(r.공사유형,"badge-blue")}</td>` +
+        td(r.공법) + td(r.직무분야) + td(r.전문분야) + td(r.책임정도) + td(r.직위)
+      )).join("")}</tbody>
     </table></div>`;
+
   } else {
     const data = UPLOAD_DATA.certifications;
     if (!data.length) { area.innerHTML = '<div class="empty-state"><p>자격증 데이터 없음</p></div>'; return; }
+    const headers = ["사번","이름","자격증명","자격증번호","취득일","발급기관"];
     area.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
-      <thead style="background:var(--surface);">
-        <tr>
-          ${["기술인","자격증명","자격증번호","취득일","발급기관"].map(h=>
-            `<th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--text2);">${h}</th>`
-          ).join("")}
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map((r,i) => `<tr style="${i%2===0?'':'background:var(--surface)'}">
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-family:monospace;">${r.기술인사번||'-'}</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;">${r.기술인이름}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.자격증명}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.자격증번호||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.취득일||"-"}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid var(--border);">${r.발급기관||"-"}</td>
-        </tr>`).join("")}
-      </tbody>
+      <thead style="background:var(--surface);"><tr>${headers.map(th).join("")}</tr></thead>
+      <tbody>${data.map((r,i) => tr(i,
+        td(r.기술인사번, true) +
+        `<td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:600;">${r.기술인이름||"-"}</td>` +
+        td(r.자격증명) + td(r.자격증번호) + td(r.취득일) + td(r.발급기관)
+      )).join("")}</tbody>
     </table></div>`;
   }
 }
+
 
 async function executeUpload() {
   const btn = document.getElementById("exec-upload-btn");
