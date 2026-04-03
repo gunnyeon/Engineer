@@ -627,7 +627,7 @@ tr:hover td { background: var(--surface); }
           <!-- 등록 폼 -->
           <div id="jongsimje-form" style="display:none;padding:16px;border-bottom:1px solid var(--border);background:var(--surface);">
             <div style="font-weight:700;font-size:14px;margin-bottom:12px;">📋 종심제 배치 등록</div>
-            <div class="form-row" style="margin-bottom:10px;">
+            <div class="form-row" style="margin-bottom:12px;">
               <div class="form-group" style="margin:0;">
                 <label class="form-label">현장명 *</label>
                 <input type="text" class="form-control" id="jj-site" placeholder="현장명 입력">
@@ -637,25 +637,40 @@ tr:hover td { background: var(--surface); }
                 <input type="date" class="form-control" id="jj-date">
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
               <div>
                 <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">👷 현장소장 (최대 5명)</div>
-                ${[0,1,2,3,4].map(i=>`<input type="text" class="form-control" id="jj-소장-${i}" placeholder="${i+1}번" style="margin-bottom:4px;" list="eng-list">`).join("")}
+                <input type="text" class="form-control" id="jj-소장-0" placeholder="1번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-소장-1" placeholder="2번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-소장-2" placeholder="3번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-소장-3" placeholder="4번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-소장-4" placeholder="5번">
               </div>
               <div>
                 <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">🔨 공사담당 (최대 5명)</div>
-                ${[0,1,2,3,4].map(i=>`<input type="text" class="form-control" id="jj-공사-${i}" placeholder="${i+1}번" style="margin-bottom:4px;" list="eng-list">`).join("")}
+                <input type="text" class="form-control" id="jj-공사-0" placeholder="1번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-공사-1" placeholder="2번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-공사-2" placeholder="3번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-공사-3" placeholder="4번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-공사-4" placeholder="5번">
               </div>
               <div>
                 <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">🦺 안전담당 (최대 5명)</div>
-                ${[0,1,2,3,4].map(i=>`<input type="text" class="form-control" id="jj-안전-${i}" placeholder="${i+1}번" style="margin-bottom:4px;" list="eng-list">`).join("")}
+                <input type="text" class="form-control" id="jj-안전-0" placeholder="1번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-안전-1" placeholder="2번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-안전-2" placeholder="3번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-안전-3" placeholder="4번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-안전-4" placeholder="5번">
               </div>
               <div>
                 <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">✅ 품질담당 (최대 5명)</div>
-                ${[0,1,2,3,4].map(i=>`<input type="text" class="form-control" id="jj-품질-${i}" placeholder="${i+1}번" style="margin-bottom:4px;" list="eng-list">`).join("")}
+                <input type="text" class="form-control" id="jj-품질-0" placeholder="1번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-품질-1" placeholder="2번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-품질-2" placeholder="3번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-품질-3" placeholder="4번" style="margin-bottom:4px;">
+                <input type="text" class="form-control" id="jj-품질-4" placeholder="5번">
               </div>
             </div>
-            <datalist id="eng-list"></datalist>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-primary" onclick="saveJongsimje()">저장</button>
               <button class="btn btn-secondary" onclick="closeJongsimjeForm()">취소</button>
@@ -1198,7 +1213,7 @@ function processExcelFile(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+      const wb = XLSX.read(e.target.result, { type: "array", cellDates: false });
       UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
 
       // ① 기술인 기본정보 시트
@@ -1303,9 +1318,12 @@ function formatExcelDate(val) {
     const d = String(val.getDate()).padStart(2,"0");
     return `${y}-${m}-${d}`;
   }
-  // 숫자(엑셀 시리얼) → UTC 기준 변환 (시리얼은 UTC 날짜 기준)
+  // 숫자(엑셀 시리얼) → 날짜 변환
+  // 엑셀 1900 날짜 체계: 1900-01-01 = 1, 25569 = 1970-01-01
+  // 윤년 버그: 엑셀은 1900-02-29가 존재한다고 잘못 계산함 → 60 이상이면 -1
   if (typeof val === "number") {
-    const ms = Math.round((val - 25569) * 86400 * 1000);
+    const serial = val > 59 ? val - 1 : val; // 윤년 버그 보정
+    const ms = Math.round((serial - 25568) * 86400 * 1000);
     const dt = new Date(ms);
     return dt.getUTCFullYear() + "-" +
       String(dt.getUTCMonth()+1).padStart(2,"0") + "-" +
@@ -1893,7 +1911,7 @@ async function openEngineerDetail(id) {
     document.getElementById("eng-role").value = eng["직책"] || "";
     document.getElementById("eng-arch-grade").value = eng["건축분야등급"] || "";
     document.getElementById("eng-qual-grade").value = eng["품질분야등급"] || "";
-    document.getElementById("eng-hiredate").value = eng["입사일"] || "";
+    document.getElementById("eng-hiredate").value = fmtDate(eng["입사일"]) || "";
     document.getElementById("eng-note").value = eng["비고"] || "";
     document.getElementById("eng-modal-title").textContent = eng["이름"] + " 상세 / 수정";
     document.getElementById("save-eng-btn").textContent = "수정 저장";
@@ -1960,14 +1978,25 @@ async function saveEngineer() {
 }
 
 async function deleteEngineer(id, name) {
-  if (!confirm(`"${name}"을(를) 삭제하시겠습니까?\n관련 경력 데이터도 함께 관리하세요.`)) return;
+  if (!confirm(`"${name}"을(를) 삭제하시겠습니까?\n관련 경력·자격증 데이터도 함께 삭제됩니다.`)) return;
+  // 즉시 UI에서 행 제거 (속도 향상)
+  const rows = document.querySelectorAll("#engineers-table tbody tr");
+  rows.forEach(row => {
+    if (row.innerHTML.includes(id)) row.remove();
+  });
+  // ALL_ENGINEERS에서도 즉시 제거
+  ALL_ENGINEERS = ALL_ENGINEERS.filter(e => e.ID !== id);
+  ALL_ENGINEERS_FILTERED = ALL_ENGINEERS_FILTERED.filter(e => e.ID !== id);
+  toast("삭제 중...", "info");
   try {
     await apiPost("deleteEngineer", { id });
     cacheClear("all");
-    toast("삭제 완료", "success");
+    toast(`"${name}" 삭제 완료`, "success");
+    // 백그라운드에서 목록 새로고침
     loadEngineers();
   } catch(e) {
     toast("삭제 실패: " + e.message, "error");
+    loadEngineers(); // 실패 시 원복
   }
 }
 
