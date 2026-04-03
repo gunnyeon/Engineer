@@ -337,102 +337,141 @@ tr:hover td { background: var(--surface); }
 /* ── 반응형 ───────────────────────────── */
 @media (max-width: 768px) {
   /* ── 사이드바 ── */
-  #sidebar {
-    transform: translateX(-100%);
-    box-shadow: 4px 0 20px rgba(0,0,0,.3);
-    width: 240px;
-    z-index: 200;
-  }
+  #sidebar { transform: translateX(-100%); box-shadow: 4px 0 20px rgba(0,0,0,.3); width: 260px; z-index: 200; }
   #sidebar.open { transform: translateX(0); }
   #main { margin-left: 0; }
   #mobile-menu-btn { display: block; }
 
   /* ── 콘텐츠 ── */
-  #content { padding: 12px; }
-  #topbar { padding: 0 12px; }
-  #page-title { font-size: 15px; }
+  #content { padding: 10px 12px 80px; } /* 하단 내비 여백 */
+  #topbar { padding: 0 14px; height: 52px; }
+  #page-title { font-size: 15px; font-weight: 700; }
 
-  /* ── 통계 그리드: 2열 ── */
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .stat-card { padding: 14px 12px; }
-  .stat-value { font-size: 26px; }
+  /* ── 하단 내비게이션 ── */
+  #mobile-bottom-nav {
+    display: flex !important;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    z-index: 150; height: 60px; padding: 0 4px;
+    box-shadow: 0 -2px 12px rgba(0,0,0,.08);
+  }
+  #mobile-bottom-nav .mob-nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; cursor: pointer;
+    color: var(--text3); font-size: 10px; font-weight: 600;
+    padding: 6px 2px; border-radius: 8px; transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #mobile-bottom-nav .mob-nav-item.active { color: var(--primary); }
+  #mobile-bottom-nav .mob-nav-item .mob-icon { font-size: 20px; line-height: 1; }
+
+  /* ── 통계 카드 2열 ── */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat-card { padding: 12px; }
+  .stat-value { font-size: 24px; }
+  .stat-label { font-size: 11px; }
 
   /* ── 차트 ── */
-  .chart-row { grid-template-columns: 1fr; }
-  .chart-container { height: 200px; }
-
-  /* ── 폼 ── */
-  .form-row { grid-template-columns: 1fr; }
-  .form-group { margin-bottom: 10px; }
-
-  /* ── 모달 ── */
-  .modal-overlay { align-items: flex-end; padding: 0; }
-  .modal {
-    max-height: 92vh; width: 100%; border-radius: 16px 16px 0 0;
-    margin: 0; overflow-y: auto;
-  }
-  .modal-header { padding: 16px 16px 12px; }
-  .modal-body { padding: 0 16px 16px; }
-
-  /* ── 테이블 ── */
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 600px; font-size: 12px; }
-  table th, table td { padding: 8px 6px; }
+  .chart-row { grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+  .chart-container { height: 180px; }
 
   /* ── 카드 ── */
-  .card { padding: 0; border-radius: 10px; }
-  .card-header { padding: 12px 14px; }
-  .card-body { padding: 12px 14px; }
+  .card { padding: 0; }
+  .card-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 14px; }
 
-  /* ── 검색폼 3열 → 1열 ── */
+  /* ── 폼 ── */
+  .form-row { grid-template-columns: 1fr; gap: 10px; }
+  .form-group { margin-bottom: 10px; }
+  .form-control { font-size: 16px; } /* iOS 줌 방지 */
+
+  /* ── 모달: 바텀시트 ── */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { max-height: 92vh; width: 100%; border-radius: 20px 20px 0 0; margin: 0; overflow-y: auto; }
+  .modal-header { padding: 16px 16px 10px; position: sticky; top: 0; }
+  .modal-body { padding: 12px 16px 20px; }
+  .modal-footer { padding: 12px 16px; }
+
+  /* ── 검색바 ── */
+  .search-bar { flex-direction: column; gap: 8px; }
+  .search-bar .form-control { max-width: 100% !important; width: 100%; }
+  .search-bar .btn { width: 100%; justify-content: center; }
+
+  /* ── 테이블: 가로 스크롤 ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0; }
+  table { font-size: 12px; }
+  th, td { padding: 8px 8px; white-space: nowrap; }
+
+  /* ── 기술인 카드뷰 ── */
+  .eng-card {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    display: block; background: var(--bg2);
+  }
+  .eng-card:last-child { border-bottom: none; }
+  .eng-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .eng-card-name { font-size: 16px; font-weight: 700; color: var(--primary); }
+  .eng-card-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .eng-card-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+  .eng-card-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .eng-card-actions .btn { flex: 1; justify-content: center; font-size: 13px; padding: 8px 10px; }
+
+  /* ── 검색 결과 카드뷰 ── */
+  .search-card {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .search-card:last-child { border-bottom: none; }
+
+  /* ── 전문가 검색 폼 ── */
   #page-search .card > div[style*="grid-template-columns:repeat(3"] {
     grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
 
-  /* ── 종심제 폼 그리드 → 1열 ── */
+  /* ── 종심제 폼 ── */
   #page-jongsimje div[style*="grid-template-columns:1fr 1fr"] {
     grid-template-columns: 1fr !important;
   }
 
-  /* ── 엑셀 업로드 ── */
-  #page-upload .card { padding: 0; }
+  /* ── 경력증명서 PDF ── */
+  #pdf-preview { width: 100% !important; font-size: 7px !important; overflow-x: auto; }
+  #pdf-preview table { min-width: 600px; }
 
   /* ── 버튼 ── */
-  .btn { padding: 8px 12px; font-size: 13px; }
-  .btn-sm { padding: 5px 8px; font-size: 11px; }
+  .btn { padding: 9px 14px; font-size: 13.5px; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+  /* ── 오버레이 ── */
+  #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 199; }
+  #sidebar-overlay.show { display: block; }
+
+  /* ── 탭 ── */
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; flex-wrap: nowrap; }
+  .tab { flex-shrink: 0; padding: 10px 14px; }
 
   /* ── 배지 ── */
-  .badge { font-size: 9px; padding: 2px 5px; }
+  .badge { font-size: 10px; padding: 2px 7px; }
 
-  /* ── 기술인 목록 페이지네이션 ── */
-  #engineers-pagination { flex-wrap: wrap; gap: 4px; }
+  /* ── 페이지네이션 ── */
+  #engineers-pagination { flex-wrap: wrap; gap: 4px; justify-content: center; }
 
-  /* ── 검색바 ── */
-  .search-bar { flex-wrap: wrap; gap: 6px; }
-  .search-bar .form-control { max-width: 100% !important; }
-
-  /* ── 경력증명서 PDF ── */
-  #pdf-preview { width: 100% !important; font-size: 8px !important; }
-  #pdf-preview table td, #pdf-preview table th { padding: 2px !important; font-size: 7px !important; }
-
-  /* ── nav ── */
-  .nav-item { padding: 10px 16px; font-size: 14px; }
-
-  /* ── 오버레이 (사이드바 열릴 때) ── */
-  #sidebar-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); z-index: 199;
-  }
-  #sidebar-overlay.show { display: block; }
+  /* ── TOP 기술인 테이블 ── */
+  #top-engineers-table th:nth-child(2),
+  #top-engineers-table td:nth-child(2) { display: none; }
 }
 
 /* 소형 모바일 (320px~480px) */
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-value { font-size: 22px; }
-  #content { padding: 8px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-value { font-size: 20px; }
+  .stat-label { font-size: 10px; }
+  #content { padding: 8px 10px 80px; }
   .card-header { padding: 10px 12px; }
-  table { min-width: 500px; font-size: 11px; }
+  table { min-width: 480px; font-size: 11px; }
+  .eng-card { padding: 12px 14px; }
+  .eng-card-name { font-size: 15px; }
+  #mobile-bottom-nav .mob-nav-item { font-size: 9px; }
+  #mobile-bottom-nav .mob-icon { font-size: 18px; }
 }
 
 /* ── 차트 컨테이너 ────────────────────── */
@@ -559,6 +598,25 @@ tr:hover td { background: var(--surface); }
         <span style="font-size:12px;color:var(--text3);" id="topbar-time"></span>
       </div>
     </div>
+
+    <!-- 모바일 하단 내비게이션 -->
+    <nav id="mobile-bottom-nav" style="display:none;">
+      <div class="mob-nav-item active" data-page="dashboard" onclick="showPage('dashboard');setMobNav('dashboard')">
+        <span class="mob-icon">📊</span><span>대시보드</span>
+      </div>
+      <div class="mob-nav-item" data-page="engineers" onclick="showPage('engineers');setMobNav('engineers')">
+        <span class="mob-icon">👷</span><span>기술인</span>
+      </div>
+      <div class="mob-nav-item" data-page="search" onclick="showPage('search');setMobNav('search')">
+        <span class="mob-icon">🔍</span><span>검색</span>
+      </div>
+      <div class="mob-nav-item" data-page="jongsimje" onclick="showPage('jongsimje');setMobNav('jongsimje')">
+        <span class="mob-icon">🏗️</span><span>종심제</span>
+      </div>
+      <div class="mob-nav-item" data-page="reports" onclick="showPage('reports');setMobNav('reports')">
+        <span class="mob-icon">📄</span><span>증명서</span>
+      </div>
+    </nav>
 
     <div id="content">
 
@@ -1819,10 +1877,11 @@ function showPage(page) {
   else if (page === "reports") loadReportEngineers();
   else if (page === "search") loadSearchFilters();
 
-  // 모바일: 사이드바 닫기
+  // 모바일: 사이드바 닫기 + 하단내비 업데이트
   document.getElementById("sidebar").classList.remove("open");
   const ov = document.getElementById("sidebar-overlay");
   if (ov) ov.classList.remove("show");
+  setMobNav(page);
 }
 
 // ── 공통 PDF 출력 헬퍼 ──────────────────────────────────────
@@ -1947,6 +2006,12 @@ function installPWA() {
   } else {
     toast("브라우저 주소창 오른쪽의 설치(⊕) 아이콘을 클릭하세요", "info");
   }
+}
+
+function setMobNav(page) {
+  document.querySelectorAll("#mobile-bottom-nav .mob-nav-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.page === page);
+  });
 }
 
 function toggleSidebar() {
@@ -2122,30 +2187,68 @@ function renderEngineersTable() {
   const total = ALL_ENGINEERS_FILTERED.length;
   const start = (CURRENT_PAGE - 1) * PAGE_SIZE;
   const pageData = ALL_ENGINEERS_FILTERED.slice(start, start + PAGE_SIZE);
+  const isMobile = window.innerWidth <= 768;
 
-  document.getElementById("engineers-table-body").innerHTML = pageData.length ? pageData.map(e => `
-    <tr>
-      <td style="font-family:monospace;font-size:12px;color:var(--text2);">${e["사번"] || "-"}</td>
-      <td><strong style="cursor:pointer;color:var(--primary);" onclick="openEngineerDetail('${e.ID}')">${e["이름"]}</strong></td>
-      <td>${e["소속부서"] || "-"}</td>
-      <td>${e["직급"] || ""} / ${e["직책"] || ""}</td>
-      <td>${gradeBadge(e["건축분야등급"])}</td><td>${gradeBadge(e["품질분야등급"])}</td><td>${e["총경력연수"]}년</td>
-      <td style="max-width:180px;">
-        ${e["자격증수"] > 0
-          ? e["자격증목록"].split(", ").map(c=>`<span class="badge badge-green" style="display:inline-block;margin:1px 2px;font-size:10px;">${c}</span>`).join("")
-          : "-"}
-      </td>
-      <td>${e["연락처"] || "-"}</td>
-      <td>
-        <div style="display:flex;gap:6px;">
+  if (isMobile) {
+    // ── 모바일: 카드 뷰 ──────────────────────────
+    const tbody = document.getElementById("engineers-table-body");
+    tbody.closest("table").style.display = "none";
+    let cardWrap = document.getElementById("eng-card-list");
+    if (!cardWrap) {
+      cardWrap = document.createElement("div");
+      cardWrap.id = "eng-card-list";
+      tbody.closest(".table-wrap").appendChild(cardWrap);
+    }
+    cardWrap.style.display = "block";
+
+    if (!pageData.length) {
+      cardWrap.innerHTML = '<div class="empty-state"><div class="empty-icon">👷</div><p>기술인 데이터가 없습니다</p></div>';
+    } else {
+      cardWrap.innerHTML = pageData.map(e => `
+        <div class="eng-card" onclick="openEngineerDetail('${e.ID}')">
+          <div class="eng-card-top">
+            <div>
+              <div class="eng-card-name">${e["이름"]}</div>
+              <div class="eng-card-sub">${e["소속부서"]||""} ${e["직급"]?"· "+e["직급"]:""} ${e["직책"]?"· "+e["직책"]:""}</div>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:var(--primary);">${e["총경력연수"]}년</div>
+          </div>
+          <div class="eng-card-badges">
+            ${gradeBadge(e["건축분야등급"])}
+            ${gradeBadge(e["품질분야등급"])}
+            ${e["자격증수"]>0 ? e["자격증목록"].split(", ").slice(0,2).map(c=>`<span class="badge badge-green" style="font-size:10px;">${c}</span>`).join("") : ""}
+          </div>
+          <div style="font-size:12px;color:var(--text3);">${e["연락처"]||""}</div>
+          <div class="eng-card-actions" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-sm" onclick="openEngineerDetail('${e.ID}')">상세 / 수정</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteEngineer('${e.ID}','${e["이름"]}')">삭제</button>
+          </div>
+        </div>`).join("");
+    }
+  } else {
+    // ── 데스크톱: 테이블 뷰 ─────────────────────
+    const cardWrap = document.getElementById("eng-card-list");
+    if (cardWrap) cardWrap.style.display = "none";
+    const tbl = document.getElementById("engineers-table-body").closest("table");
+    tbl.style.display = "";
+
+    document.getElementById("engineers-table-body").innerHTML = pageData.length ? pageData.map(e => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--text2);">${e["사번"]||"-"}</td>
+        <td><strong style="cursor:pointer;color:var(--primary);" onclick="openEngineerDetail('${e.ID}')">${e["이름"]}</strong></td>
+        <td>${e["소속부서"]||"-"}</td>
+        <td>${e["직급"]||""} / ${e["직책"]||""}</td>
+        <td>${gradeBadge(e["건축분야등급"])}</td><td>${gradeBadge(e["품질분야등급"])}</td>
+        <td>${e["총경력연수"]}년</td>
+        <td style="max-width:180px;">${e["자격증수"]>0?e["자격증목록"].split(", ").map(c=>`<span class="badge badge-green" style="display:inline-block;margin:1px 2px;font-size:10px;">${c}</span>`).join(""):"-"}</td>
+        <td>${e["연락처"]||"-"}</td>
+        <td><div style="display:flex;gap:6px;">
           <button class="btn btn-secondary btn-sm" onclick="openEngineerDetail('${e.ID}')">상세</button>
           <button class="btn btn-danger btn-sm" onclick="deleteEngineer('${e.ID}','${e["이름"]}')">삭제</button>
-        </div>
-      </td>
-    </tr>
-  `).join("") : `<tr><td colspan="8" class="empty-state"><div class="empty-icon">👷</div><p>기술인 데이터가 없습니다</p></td></tr>`;
-
-  // 페이지네이션
+        </div></td>
+      </tr>`).join("")
+      : `<tr><td colspan="10" class="empty-state"><div class="empty-icon">👷</div><p>기술인 데이터가 없습니다</p></td></tr>`;
+  }
   renderPagination(total, "engineers-pagination");
 }
 
@@ -2656,27 +2759,45 @@ async function doSearch() {
         .map(([k,v])=>`${k}(${Math.round(v/365.25*10)/10}년)`)
         .slice(0,3).join(" / ");
     });
-    area.innerHTML = `<table>
-      <thead><tr><th>사번</th><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>조건경력</th><th>담당업무별경력</th><th>자격증</th><th>연락처</th><th>상세</th></tr></thead>
-      <tbody>${results.map(e => `
-        <tr>
-          <td style="font-family:monospace;font-size:12px;color:var(--text2);">${e["사번"] || "-"}</td>
-          <td><strong>${e["이름"]}</strong></td>
-          <td>${e["소속부서"] || "-"}</td>
-          <td>${gradeBadge(e["건축분야등급"])}</td><td>${gradeBadge(e["품질분야등급"])}</td>
-          <td><strong>${e.총경력연수}년</strong></td>
-          <td style="font-size:12px;color:var(--primary);">${e.조건경력연수 > 0 ? e.조건경력연수 + "년" : "-"}</td>
-          <td style="font-size:12px;">${e._업무경력 || "-"}</td>
-          <td style="max-width:160px;font-size:11px;">
-            ${e.자격증명목록
-              ? e.자격증명목록.split(", ").map(c=>`<span class="badge badge-green" style="display:inline-block;margin:1px 2px;font-size:10px;">${c}</span>`).join("")
-              : "-"}
-          </td>
-          <td>${e["연락처"] || "-"}</td>
-          <td><button class="btn btn-secondary btn-sm" onclick="showPage('engineers');openEngineerDetail('${e.ID}')">상세</button></td>
-        </tr>
-      `).join("")}</tbody>
-    </table>`;
+    const isMob = window.innerWidth <= 768;
+    if (isMob) {
+      area.innerHTML = `<div>${results.map(e => `
+        <div class="search-card" onclick="showPage('engineers');openEngineerDetail('${e.ID}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+            <div>
+              <div style="font-size:16px;font-weight:700;color:var(--primary);">${e["이름"]}</div>
+              <div style="font-size:12px;color:var(--text2);">${e["소속부서"]||""}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:700;">${e.총경력연수}년</div>
+              ${e.조건경력연수>0?`<div style="font-size:11px;color:var(--primary);">조건 ${e.조건경력연수}년</div>`:""}
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
+            ${gradeBadge(e["건축분야등급"])}${gradeBadge(e["품질분야등급"])}
+            ${e.자격증명목록?e.자격증명목록.split(", ").slice(0,2).map(c=>`<span class="badge badge-green" style="font-size:10px;">${c}</span>`).join(""):""}
+          </div>
+          ${e._업무경력?`<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">업무: ${e._업무경력}</div>`:""}
+          <div style="font-size:12px;color:var(--text3);">${e["연락처"]||""}</div>
+        </div>`).join("")}</div>`;
+    } else {
+      area.innerHTML = `<table>
+        <thead><tr><th>사번</th><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>조건경력</th><th>담당업무별경력</th><th>자격증</th><th>연락처</th><th>상세</th></tr></thead>
+        <tbody>${results.map(e => `
+          <tr>
+            <td style="font-family:monospace;font-size:12px;color:var(--text2);">${e["사번"]||"-"}</td>
+            <td><strong>${e["이름"]}</strong></td>
+            <td>${e["소속부서"]||"-"}</td>
+            <td>${gradeBadge(e["건축분야등급"])}</td><td>${gradeBadge(e["품질분야등급"])}</td>
+            <td><strong>${e.총경력연수}년</strong></td>
+            <td style="font-size:12px;color:var(--primary);">${e.조건경력연수>0?e.조건경력연수+"년":"-"}</td>
+            <td style="font-size:12px;">${e._업무경력||"-"}</td>
+            <td style="max-width:160px;font-size:11px;">${e.자격증명목록?e.자격증명목록.split(", ").map(c=>`<span class="badge badge-green" style="display:inline-block;margin:1px 2px;font-size:10px;">${c}</span>`).join(""):"-"}</td>
+            <td>${e["연락처"]||"-"}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="showPage('engineers');openEngineerDetail('${e.ID}')">상세</button></td>
+          </tr>`).join("")}</tbody>
+      </table>`;
+    }
     // 검색 결과 카운트 표시
     const countEl = document.getElementById("search-count");
     if (countEl) countEl.textContent = `검색 결과: ${results.length}명`;
@@ -3045,6 +3166,15 @@ function updateClock() {
   const el = document.getElementById("topbar-time");
   if (el) el.textContent = new Date().toLocaleString("ko-KR");
 }
+
+// 창 크기 변경 시 기술인 목록 재렌더링
+let _resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    if (ALL_ENGINEERS_FILTERED.length) renderEngineersTable();
+  }, 200);
+});
 
 function downloadCSV(rows, filename) {
   const BOM = "\uFEFF";
