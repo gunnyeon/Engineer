@@ -3062,12 +3062,14 @@ document.addEventListener("keydown", e => {
     document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
   }
 });
-  // PWA 서비스워커 등록 (외부 파일 방식 — Chrome 설치 조건 충족)
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js")
-      .then(reg => console.log("SW 등록:", reg.scope))
-      .catch(err => console.log("SW 오류:", err));
-  }
+  // PWA 서비스워커 등록 (GitHub Pages에서만 동작)
+  try {
+    if ("serviceWorker" in navigator && location.hostname.includes("github.io")) {
+      navigator.serviceWorker.register("./sw.js")
+        .then(reg => console.log("SW 등록:", reg.scope))
+        .catch(() => {});
+    }
+  } catch(e) {}
 
   // PWA 설치 버튼 처리
   let _deferredPrompt = null;
