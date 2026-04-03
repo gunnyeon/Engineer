@@ -98,9 +98,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
 }
 
 /* ── 컨텐츠 영역 ──────────────────────── */
-#content { flex: 1; padding: 24px; max-width: 1280px; width: 100%; }
+#content { flex: 1; padding: 20px 24px; max-width: 1280px; width: 100%; overflow-y: auto; }
 .page { display: none; }
-.page.active { display: block; }
+.page.active { display: block; min-height: 0; }
 
 /* ── 카드 ─────────────────────────────── */
 .card {
@@ -625,12 +625,12 @@ tr:hover td { background: var(--surface); }
           </div>
         </div>
 
-        <!-- 검색 결과 -->
-<div id="search-results" class="table-wrap">
+          <div id="search-results" class="table-wrap" style="margin-top:16px;">
             <div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>
           </div>
-        </div>
-      </div>
+
+        </div><!-- /card -->
+      </div><!-- /page-search -->
 
       <!-- ── 종심제 배치현황 ── -->
       <div id="page-jongsimje" class="page">
@@ -727,7 +727,7 @@ tr:hover td { background: var(--surface); }
               </div>
             </div>
           </div>
-          <div id="report-action-bar" style="display:none;margin-bottom:12px;display:none;gap:8px;">
+          <div id="report-action-bar" style="display:none;margin-bottom:12px;gap:8px;">
             <button class="btn btn-success" onclick="printReport()">🖨️ PDF 출력</button>
             <button class="btn btn-secondary" onclick="resetReport()">✕ 종료 (다른 인원 조회)</button>
           </div>
@@ -1081,7 +1081,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbyov6SHDMXcSRpqZYoFjol1fey3zOcwyDkYL5RH_twbOwTjkgo7_kiPTJpJRglNR6Hd_w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxMim_sd931NmtBfoaxcL4V9B0AESxs-QahB9wk7k5ZKJxIkfSwflrs8jupkqJWxakazw/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -1720,7 +1720,8 @@ let chartWorktype, chartGrade, chartProjtype;
 async function loadDashboard() {
   try {
     // 1분 캐시
-    let data = CACHE.dashboard && (Date.now() - CACHE.dashboardTime < CACHE.TTL) ? CACHE.dashboard : null;
+    // 대시보드 캐시 (10분, 데이터 변경 시 cacheClear("all")로 무효화)
+    let data = CACHE.dashboard && (Date.now() - CACHE.dashboardTime < 600000) ? CACHE.dashboard : null;
     if (!data) {
       data = await api("getDashboard");
       CACHE.dashboard = data;
@@ -1916,39 +1917,73 @@ function goPage(p) {
 // ── 기술인 상세 / 등록 모달 ─────────────────────
 async function openEngineerDetail(id) {
   CURRENT_ENG_ID = id;
-  try {
-    // 먼저 ALL_ENGINEERS 캐시에서 즉시 조회 (API 호출 없이 빠르게 표시)
-    let eng = ALL_ENGINEERS.find(e => e.ID === id);
-    if (!eng) {
-      eng = cacheGet("engineerDetail", id);
-      if (!eng) {
-        eng = await api("getEngineer", { id });
-        cacheSet("engineerDetail", id, eng);
-      }
-    }
-    document.getElementById("eng-id").value = eng.ID;
-    document.getElementById("eng-empno").value = eng["사번"] || "";
-    document.getElementById("eng-name").value = eng["이름"] || "";
-    document.getElementById("eng-birth").value = fmtDate(eng["생년월일"]) || "";
-    document.getElementById("eng-phone").value = eng["연락처"] || "";
-    document.getElementById("eng-email").value = eng["이메일"] || "";
-    document.getElementById("eng-dept").value = eng["소속부서"] || "";
-    document.getElementById("eng-position").value = eng["직급"] || "";
-    document.getElementById("eng-role").value = eng["직책"] || "";
-    document.getElementById("eng-arch-grade").value = eng["건축분야등급"] || "";
-    document.getElementById("eng-qual-grade").value = eng["품질분야등급"] || "";
-    document.getElementById("eng-hiredate").value = fmtDate(eng["입사일"]) || "";
-    document.getElementById("eng-note").value = eng["비고"] || "";
-    document.getElementById("eng-modal-title").textContent = eng["이름"] + " 상세 / 수정";
-    document.getElementById("save-eng-btn").textContent = "수정 저장";
 
+  // ① 기술인 기본정보: ALL_ENGINEERS 캐시에서 즉시 (API 없음)
+  let eng = ALL_ENGINEERS.find(e => e.ID === id) || cacheGet("engineerDetail", id);
+
+  if (eng) {
+    _fillEngineerForm(eng);
     openModal("engineer-modal");
     switchTab("eng-tab", "basic", null);
-    loadCertList(id);
-    loadExpList(id);
-  } catch(e) {
-    toast("로딩 실패: " + e.message, "error");
+  } else {
+    // 캐시 없으면 모달 먼저 열고 로딩 표시
+    openModal("engineer-modal");
+    switchTab("eng-tab", "basic", null);
   }
+
+  // ② 경력+자격증: 통합 API 1번 호출 (병렬로 백그라운드 처리)
+  const detailPromise = api("getEngineerDetail", { id });
+
+  // 캐시에 없으면 서버에서 기본정보 가져오기 (드문 경우)
+  if (!eng) {
+    try {
+      eng = await api("getEngineer", { id });
+      cacheSet("engineerDetail", id, eng);
+      _fillEngineerForm(eng);
+    } catch(e) { toast("로딩 실패: " + e.message, "error"); return; }
+  }
+
+  // ③ 경력+자격증 렌더링 (캐시 우선, 없으면 통합 API 결과 사용)
+  try {
+    // 캐시 확인
+    const cachedExps  = cacheGet("experiences", id);
+    const cachedCerts = cacheGet("certs", id);
+
+    if (cachedExps && cachedCerts) {
+      // 캐시 있으면 즉시 렌더링, API 결과는 버림
+      _renderExpList(cachedExps);
+      _renderCertList(cachedCerts);
+      detailPromise.catch(() => {}); // 무시
+    } else {
+      // 캐시 없으면 API 결과 기다려서 렌더링
+      const detail = await detailPromise;
+      cacheSet("experiences", id, detail.experiences);
+      cacheSet("certs", id, detail.certifications);
+      _renderExpList(detail.experiences);
+      _renderCertList(detail.certifications);
+    }
+  } catch(e) {
+    document.getElementById("exp-list").innerHTML = '<div class="empty-state"><p>경력 로딩 실패</p></div>';
+    document.getElementById("cert-list").innerHTML = '<div class="empty-state"><p>자격증 로딩 실패</p></div>';
+  }
+}
+
+function _fillEngineerForm(eng) {
+  document.getElementById("eng-id").value = eng.ID || "";
+  document.getElementById("eng-empno").value = eng["사번"] || "";
+  document.getElementById("eng-name").value = eng["이름"] || "";
+  document.getElementById("eng-birth").value = fmtDate(eng["생년월일"]) || "";
+  document.getElementById("eng-phone").value = eng["연락처"] || "";
+  document.getElementById("eng-email").value = eng["이메일"] || "";
+  document.getElementById("eng-dept").value = eng["소속부서"] || "";
+  document.getElementById("eng-position").value = eng["직급"] || "";
+  document.getElementById("eng-role").value = eng["직책"] || "";
+  document.getElementById("eng-arch-grade").value = eng["건축분야등급"] || "";
+  document.getElementById("eng-qual-grade").value = eng["품질분야등급"] || "";
+  document.getElementById("eng-hiredate").value = fmtDate(eng["입사일"]) || "";
+  document.getElementById("eng-note").value = eng["비고"] || "";
+  document.getElementById("eng-modal-title").textContent = (eng["이름"] || "") + " 상세 / 수정";
+  document.getElementById("save-eng-btn").textContent = "수정 저장";
 }
 
 function openEngineerModal() {
@@ -2036,14 +2071,8 @@ async function deleteEngineer(id, name) {
 }
 
 // ── 자격증 관리 ─────────────────────────────────
-async function loadCertList(engId) {
-  try {
-    let certs = cacheGet("certs", engId);
-    if (!certs) {
-      certs = await api("getCerts", { engineerId: engId });
-      cacheSet("certs", engId, certs);
-    }
-    document.getElementById("cert-list").innerHTML = certs.length
+function _renderCertList(certs) {
+  document.getElementById("cert-list").innerHTML = certs.length
       ? certs.map(c => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;margin-bottom:8px;">
           <div>
@@ -2055,6 +2084,16 @@ async function loadCertList(engId) {
         </div>
       `).join("")
       : '<div class="empty-state"><p>등록된 자격증이 없습니다</p></div>';
+}
+
+async function loadCertList(engId) {
+  try {
+    let certs = cacheGet("certs", engId);
+    if (!certs) {
+      certs = await api("getCerts", { engineerId: engId });
+      cacheSet("certs", engId, certs);
+    }
+    _renderCertList(certs);
   } catch(e) {}
 }
 
@@ -2091,14 +2130,8 @@ async function deleteCert(id) {
 }
 
 // ── 경력 관리 ────────────────────────────────────
-async function loadExpList(engId) {
-  try {
-    let exps = cacheGet("experiences", engId);
-    if (!exps) {
-      exps = await api("getExperiences", { engineerId: engId });
-      cacheSet("experiences", engId, exps);
-    }
-    document.getElementById("exp-list").innerHTML = exps.length
+function _renderExpList(exps) {
+  document.getElementById("exp-list").innerHTML = exps.length
       ? exps.map(e => `
         <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -2124,6 +2157,16 @@ async function loadExpList(engId) {
         </div>
       `).join("")
       : '<div class="empty-state"><p>등록된 경력이 없습니다</p></div>';
+}
+
+async function loadExpList(engId) {
+  try {
+    let exps = cacheGet("experiences", engId);
+    if (!exps) {
+      exps = await api("getExperiences", { engineerId: engId });
+      cacheSet("experiences", engId, exps);
+    }
+    _renderExpList(exps);
   } catch(e) {}
 }
 
