@@ -523,11 +523,16 @@ tr:hover td { background: var(--surface); }
       <div id="page-search" class="page">
         <div class="card" style="margin-bottom:16px;">
           <div class="card-header"><div class="card-title">🔍 전문가 검색</div></div>
-          <div class="form-row" style="margin-bottom:12px;">
+
+          <!-- 검색 필터 그리드: 3열 고정 -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;margin-bottom:16px;">
+
+            <!-- 행1: 이름 / 공사유형 대구분 / 공사유형 소구분 -->
             <div class="form-group" style="margin:0;">
               <label class="form-label">이름</label>
               <input type="text" class="form-control" id="s-name" placeholder="김건축">
             </div>
+
             <div class="form-group" style="margin:0;">
               <label class="form-label">공사유형 대구분 <span style="font-size:10px;color:var(--text3);">(복수)</span></label>
               <div id="s-projtype-major-wrap" style="border:1.5px solid var(--border);border-radius:7px;background:var(--bg2);position:relative;">
@@ -541,6 +546,7 @@ tr:hover td { background: var(--surface); }
                 </div>
               </div>
             </div>
+
             <div class="form-group" style="margin:0;">
               <label class="form-label">공사유형 소구분 <span style="font-size:10px;color:var(--text3);">(복수)</span></label>
               <div id="s-projtype-minor-wrap" style="border:1.5px solid var(--border);border-radius:7px;background:var(--bg2);position:relative;">
@@ -554,8 +560,10 @@ tr:hover td { background: var(--surface); }
                 </div>
               </div>
             </div>
+
+            <!-- 행2: 담당업무 / 책임정도 / 최소경력 -->
             <div class="form-group" style="margin:0;">
-              <label class="form-label">담당업무 <span style="font-size:10px;color:var(--text3);">(복수 선택 가능)</span></label>
+              <label class="form-label">담당업무 <span style="font-size:10px;color:var(--text3);">(복수)</span></label>
               <div id="s-worktype-wrap" style="border:1.5px solid var(--border);border-radius:7px;background:var(--bg2);position:relative;">
                 <div id="s-worktype-display" onclick="toggleWorktypeDropdown()"
                   style="padding:9px 12px;cursor:pointer;font-size:14px;color:var(--text);display:flex;justify-content:space-between;align-items:center;user-select:none;">
@@ -567,12 +575,20 @@ tr:hover td { background: var(--surface); }
                 </div>
               </div>
             </div>
+
             <div class="form-group" style="margin:0;">
               <label class="form-label">책임정도</label>
               <select class="form-control" id="s-chaegim">
                 <option value="">전체</option>
               </select>
             </div>
+
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">최소 경력 <span style="font-size:10px;color:var(--text3);">(년, 조건 내 기간)</span></label>
+              <input type="number" class="form-control" id="s-minexp" placeholder="예: 3" min="0" max="50" step="0.5">
+            </div>
+
+            <!-- 행3: 건축분야 등급 / 품질분야 등급 / 자격증 필터 -->
             <div class="form-group" style="margin:0;">
               <label class="form-label">건축분야 등급</label>
               <select class="form-control" id="s-arch-grade">
@@ -580,6 +596,7 @@ tr:hover td { background: var(--surface); }
                 <option>특급</option><option>고급</option><option>중급</option><option>초급</option>
               </select>
             </div>
+
             <div class="form-group" style="margin:0;">
               <label class="form-label">품질분야 등급</label>
               <select class="form-control" id="s-qual-grade">
@@ -587,10 +604,7 @@ tr:hover td { background: var(--surface); }
                 <option>특급</option><option>고급</option><option>중급</option><option>초급</option>
               </select>
             </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">최소 경력 (년) <span style="font-size:10px;color:var(--text3);">※공사유형/담당업무 조건 내 기간</span></label>
-              <input type="number" class="form-control" id="s-minexp" placeholder="3" min="0" max="50" step="0.5">
-            </div>
+
             <div class="form-group" style="margin:0;">
               <label class="form-label">자격증 필터</label>
               <select class="form-control" id="s-certtype">
@@ -600,18 +614,19 @@ tr:hover td { background: var(--surface); }
                 <option value="any">자격증 보유자</option>
               </select>
             </div>
+
           </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn btn-primary" onclick="doSearch()">검색</button>
+
+          <!-- 검색 버튼 -->
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary" onclick="doSearch()">🔍 검색</button>
             <button class="btn btn-secondary" onclick="clearSearch()">초기화</button>
+            <span id="search-count" style="font-size:12px;color:var(--text3);"></span>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">검색 결과 <span id="search-count" style="font-weight:400;color:var(--text3);font-size:13px;"></span></div>
-            <button class="btn btn-success btn-sm" onclick="exportSearchResult()">📥 엑셀 다운로드</button>
-          </div>
-          <div id="search-results" class="table-wrap">
+
+        <!-- 검색 결과 -->
+<div id="search-results" class="table-wrap">
             <div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>
           </div>
         </div>
@@ -1066,7 +1081,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbzf8-O2I668IQUBGJGOkVXPhGxAPraVzM__Rl3b4DPZai6wJGHw7rIy7rjbIOVJQCfv5g/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyov6SHDMXcSRpqZYoFjol1fey3zOcwyDkYL5RH_twbOwTjkgo7_kiPTJpJRglNR6Hd_w/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -2328,18 +2343,25 @@ async function doSearch() {
       area.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 결과가 없습니다</p></div>';
       return;
     }
-    // 담당업무별 경력기간 계산
+    // 담당업무별 경력기간 계산 (기간개월 or 날짜 차이로 계산)
     results.forEach(e => {
       const 업무맵 = {};
       (e.경력목록||[]).forEach(exp => {
         const 업무 = exp["담당업무"] || "-";
-        const 개월 = Number(exp["기간개월"]||0);
+        let 개월 = Number(exp["기간개월"]||0);
+        // 기간개월이 없으면 날짜 차이로 계산
+        if (!개월 && exp["참여시작일"] && exp["참여종료일"]) {
+          const s = new Date(exp["참여시작일"]);
+          const e2 = new Date(exp["참여종료일"]);
+          개월 = Math.max(0, (e2 - s) / (1000*60*60*24*30.44));
+        }
         업무맵[업무] = (업무맵[업무]||0) + 개월;
       });
       e._업무경력 = Object.entries(업무맵)
+        .filter(([k]) => k !== "-")
         .sort((a,b)=>b[1]-a[1])
         .map(([k,v])=>`${k}(${Math.round(v/12*10)/10}년)`)
-        .slice(0,2).join(", ");
+        .slice(0,3).join(" / ");
     });
     area.innerHTML = `<table>
       <thead><tr><th>사번</th><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>조건경력</th><th>담당업무별경력</th><th>자격증</th><th>연락처</th><th>상세</th></tr></thead>
@@ -2358,10 +2380,13 @@ async function doSearch() {
               : "-"}
           </td>
           <td>${e["연락처"] || "-"}</td>
-          <td><button class="btn btn-secondary btn-sm" onclick="openEngineerDetail('${e.ID}');showPage('engineers')">상세</button></td>
+          <td><button class="btn btn-secondary btn-sm" onclick="showPage('engineers');openEngineerDetail('${e.ID}')">상세</button></td>
         </tr>
       `).join("")}</tbody>
     </table>`;
+    // 검색 결과 카운트 표시
+    const countEl = document.getElementById("search-count");
+    if (countEl) countEl.textContent = `검색 결과: ${results.length}명`;
     window._searchResults = results;
   } catch(e) {
     area.innerHTML = `<div class="empty-state"><p style="color:var(--danger);">오류: ${e.message}</p></div>`;
