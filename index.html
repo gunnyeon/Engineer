@@ -540,15 +540,15 @@ tr:hover td { background: var(--surface); }
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="login-field">
         <label>아이디</label>
-        <input type="text" id="login-id" placeholder="아이디 입력" value="admin">
+        <input type="text" id="login-id" placeholder="아이디 입력" value="">
       </div>
       <div class="login-field">
         <label>비밀번호</label>
-        <input type="password" id="login-pw" placeholder="비밀번호 입력" value="admin1234" onkeypress="if(event.key==='Enter')doLogin()">
+        <input type="password" id="login-pw" placeholder="비밀번호 입력" value="" onkeypress="if(event.key==='Enter')doLogin()">
       </div>
       <button class="login-btn" onclick="doLogin()" id="login-btn-el">로그인</button>
     </div>
-    <p class="login-hint">기본 계정 admin / admin1234</p>
+    <p class="login-hint">건축사업본부 기술인 경력관리 시스템</p>
     <p id="login-error" style="color:#f87171;font-size:13px;text-align:center;margin-top:10px;display:none;"></p>
   </div>
 </div>
@@ -721,7 +721,7 @@ tr:hover td { background: var(--surface); }
           <div class="card-header"><div class="card-title">🔍 전문가 검색</div></div>
 
           <!-- 검색 필터 그리드: 데스크톱 3행3열, 모바일 1열 -->
-          <div class="search-filter-grid">
+          <div class="search-filter-grid" id="search-filter-grid-wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;margin-bottom:16px;">
 
             <!-- 행1: 이름 / 공사유형 대구분 / 공사유형 소구분 -->
             <div class="form-group" style="margin:0;">
@@ -851,39 +851,54 @@ tr:hover td { background: var(--surface); }
                 <input type="date" class="form-control" id="jj-date">
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
-              <div>
-                <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">👷 현장소장 (최대 5명)</div>
-                <input type="text" class="form-control" id="jj-소장-0" placeholder="1번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-소장-1" placeholder="2번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-소장-2" placeholder="3번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-소장-3" placeholder="4번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-소장-4" placeholder="5번">
+            <!-- 현장소장(1), 공사(3), 안전(2), 품질(2) -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+
+              <!-- 현장소장: 1명 -->
+              <div style="background:var(--surface);border-radius:8px;padding:12px;">
+                <div style="font-weight:700;font-size:12px;color:var(--primary);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:16px;">👷</span> 현장소장 <span style="font-size:10px;color:var(--text3);font-weight:400;">(1명)</span>
+                </div>
+                <input type="text" class="form-control" id="jj-소장-0" placeholder="현장소장 이름">
+                <!-- 미사용 필드 (저장 호환용) -->
+                <input type="hidden" id="jj-소장-1"><input type="hidden" id="jj-소장-2">
+                <input type="hidden" id="jj-소장-3"><input type="hidden" id="jj-소장-4">
               </div>
-              <div>
-                <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">🔨 공사담당 (최대 5명)</div>
-                <input type="text" class="form-control" id="jj-공사-0" placeholder="1번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-공사-1" placeholder="2번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-공사-2" placeholder="3번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-공사-3" placeholder="4번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-공사-4" placeholder="5번">
+
+              <!-- 공사담당: 3명 -->
+              <div style="background:var(--surface);border-radius:8px;padding:12px;">
+                <div style="font-weight:700;font-size:12px;color:#1d4ed8;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:16px;">🔨</span> 공사담당 <span style="font-size:10px;color:var(--text3);font-weight:400;">(최대 3명)</span>
+                </div>
+                <input type="text" class="form-control" id="jj-공사-0" placeholder="1번" style="margin-bottom:6px;">
+                <input type="text" class="form-control" id="jj-공사-1" placeholder="2번" style="margin-bottom:6px;">
+                <input type="text" class="form-control" id="jj-공사-2" placeholder="3번">
+                <!-- 미사용 필드 (저장 호환용) -->
+                <input type="hidden" id="jj-공사-3"><input type="hidden" id="jj-공사-4">
               </div>
-              <div>
-                <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">🦺 안전담당 (최대 5명)</div>
-                <input type="text" class="form-control" id="jj-안전-0" placeholder="1번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-안전-1" placeholder="2번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-안전-2" placeholder="3번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-안전-3" placeholder="4번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-안전-4" placeholder="5번">
+
+              <!-- 안전+품질: 우측 열 -->
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <!-- 안전담당: 2명 -->
+                <div style="background:var(--surface);border-radius:8px;padding:12px;flex:1;">
+                  <div style="font-weight:700;font-size:12px;color:#b45309;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:16px;">🦺</span> 안전담당 <span style="font-size:10px;color:var(--text3);font-weight:400;">(최대 2명)</span>
+                  </div>
+                  <input type="text" class="form-control" id="jj-안전-0" placeholder="1번" style="margin-bottom:6px;">
+                  <input type="text" class="form-control" id="jj-안전-1" placeholder="2번">
+                  <input type="hidden" id="jj-안전-2"><input type="hidden" id="jj-안전-3"><input type="hidden" id="jj-안전-4">
+                </div>
+                <!-- 품질담당: 2명 -->
+                <div style="background:var(--surface);border-radius:8px;padding:12px;flex:1;">
+                  <div style="font-weight:700;font-size:12px;color:#065f46;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:16px;">✅</span> 품질담당 <span style="font-size:10px;color:var(--text3);font-weight:400;">(최대 2명)</span>
+                  </div>
+                  <input type="text" class="form-control" id="jj-품질-0" placeholder="1번" style="margin-bottom:6px;">
+                  <input type="text" class="form-control" id="jj-품질-1" placeholder="2번">
+                  <input type="hidden" id="jj-품질-2"><input type="hidden" id="jj-품질-3"><input type="hidden" id="jj-품질-4">
+                </div>
               </div>
-              <div>
-                <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">✅ 품질담당 (최대 5명)</div>
-                <input type="text" class="form-control" id="jj-품질-0" placeholder="1번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-품질-1" placeholder="2번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-품질-2" placeholder="3번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-품질-3" placeholder="4번" style="margin-bottom:4px;">
-                <input type="text" class="form-control" id="jj-품질-4" placeholder="5번">
-              </div>
+
             </div>
             <div class="form-row" style="margin-bottom:12px;">
               <div class="form-group" style="margin:0;grid-column:1/-1;">
@@ -1373,6 +1388,14 @@ async function doLogin() {
   btn.textContent = "로그인 중...";
   btn.disabled = true;
   err.style.display = "none";
+
+  // 허용된 계정 검증 (1차)
+  const ALLOWED = [{ id: "dongbu", pw: "dongbu02348" }, { id: "admin", pw: "admin1234" }];
+  const allowed = ALLOWED.find(a => a.id === id && a.pw === pw);
+  if (!allowed) {
+    showLoginError("아이디 또는 비밀번호가 올바르지 않습니다.");
+    btn.textContent = "로그인"; btn.disabled = false; return;
+  }
 
   try {
     const data = await apiPost("login", { username: id, password: pw });
@@ -1872,19 +1895,13 @@ function doLogout() {
 
 // 이미 토큰 있으면 자동 로그인
 window.addEventListener("load", () => {
-  if (TOKEN) {
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("app").style.display = "flex";
-    const name = localStorage.getItem("userName") || "사용자";
-    const role = localStorage.getItem("userRole") || "";
-    document.getElementById("sidebar-name").textContent = name;
-    document.getElementById("sidebar-role").textContent = role;
-    document.getElementById("sidebar-avatar").textContent = name.charAt(0);
-    showPage("dashboard");
-    updateClock();
-  }
+  // 자동 로그인 비활성화 — 항상 로그인 필요
+  // TOKEN 초기화 (저장된 토큰 무효화)
+  TOKEN = "";
+  localStorage.removeItem("token");
   updateClock();
   setInterval(updateClock, 1000);
+  applySearchGridLayout();
 });
 
 // ── 페이지 전환 ─────────────────────────────────
@@ -2063,6 +2080,21 @@ function setMobNav(page) {
     el.classList.toggle("active", el.dataset.page === page);
   });
 }
+
+// 검색 필터 그리드 반응형 처리 (CSS 캐시 우회)
+function applySearchGridLayout() {
+  const grid = document.getElementById("search-filter-grid-wrap");
+  if (!grid) return;
+  if (window.innerWidth <= 768) {
+    grid.style.gridTemplateColumns = "1fr";
+    grid.style.gap = "10px 16px";
+  } else {
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "12px 16px";
+  }
+}
+window.addEventListener("resize", applySearchGridLayout);
+window.addEventListener("load", applySearchGridLayout);
 
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
