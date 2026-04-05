@@ -587,13 +587,6 @@ tr:hover td { background: var(--surface); }
       </a>
     </div>
 
-    <div class="nav-section">
-      <div class="nav-section-label">계정</div>
-      <a class="nav-item" onclick="openAccountModal()">
-        <span class="nav-icon">🔐</span> 계정 관리
-      </a>
-    </div>
-
     <div class="sidebar-bottom">
       <button id="pwa-install-btn" onclick="installPWA()"
         style="display:none;width:100%;padding:9px 12px;background:#1a56db;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:8px;">
@@ -1219,77 +1212,6 @@ tr:hover td { background: var(--surface); }
   </div>
 </div>
 
-<!-- ── 계정 관리 모달 ── -->
-<div id="account-modal" class="modal-overlay">
-  <div class="modal" style="max-width:520px;">
-    <div class="modal-header">
-      <div class="modal-title">🔐 계정 관리</div>
-      <button class="modal-close" onclick="closeModal('account-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="tabs">
-        <div class="tab active" data-tab="pw" onclick="switchTab('acc-tab','pw',this)">비밀번호 변경</div>
-        <div class="tab" data-tab="users" onclick="switchTab('acc-tab','users',this);loadUsers()">계정 목록</div>
-        <div class="tab" data-tab="adduser" onclick="switchTab('acc-tab','adduser',this)">계정 추가</div>
-      </div>
-
-      <!-- 비밀번호 변경 탭 -->
-      <div id="acc-tab-pw" class="tab-content active">
-        <div style="margin-bottom:20px;padding:12px 14px;background:var(--primary-light);border-radius:8px;font-size:13px;color:var(--primary-dark);">
-          현재 로그인된 계정의 비밀번호를 변경합니다.
-        </div>
-        <div class="form-group">
-          <label class="form-label">현재 비밀번호</label>
-          <input type="password" class="form-control" id="acc-cur-pw" placeholder="현재 비밀번호 입력">
-        </div>
-        <div class="form-group">
-          <label class="form-label">새 비밀번호 <span style="font-size:11px;color:var(--text3);">(6자 이상)</span></label>
-          <input type="password" class="form-control" id="acc-new-pw" placeholder="새 비밀번호 입력">
-        </div>
-        <div class="form-group">
-          <label class="form-label">새 비밀번호 확인</label>
-          <input type="password" class="form-control" id="acc-new-pw2" placeholder="새 비밀번호 다시 입력">
-        </div>
-        <button class="btn btn-primary" onclick="changePassword()" style="width:100%;">🔑 비밀번호 변경</button>
-      </div>
-
-      <!-- 계정 목록 탭 -->
-      <div id="acc-tab-users" class="tab-content">
-        <div id="users-list" style="min-height:100px;">
-          <div class="loading-overlay"><div class="spinner"></div> 로딩 중...</div>
-        </div>
-      </div>
-
-      <!-- 계정 추가 탭 -->
-      <div id="acc-tab-adduser" class="tab-content">
-        <div style="margin-bottom:16px;padding:12px 14px;background:var(--primary-light);border-radius:8px;font-size:13px;color:var(--primary-dark);">
-          새 계정을 추가합니다. 관리자만 가능합니다.
-        </div>
-        <div class="form-group">
-          <label class="form-label">아이디 <span style="color:var(--danger)">*</span></label>
-          <input type="text" class="form-control" id="new-user-id" placeholder="영문+숫자 조합">
-        </div>
-        <div class="form-group">
-          <label class="form-label">이름 <span style="color:var(--danger)">*</span></label>
-          <input type="text" class="form-control" id="new-user-name" placeholder="홍길동">
-        </div>
-        <div class="form-group">
-          <label class="form-label">비밀번호 <span style="color:var(--danger)">*</span> <span style="font-size:11px;color:var(--text3);">(6자 이상)</span></label>
-          <input type="password" class="form-control" id="new-user-pw" placeholder="초기 비밀번호">
-        </div>
-        <div class="form-group">
-          <label class="form-label">권한</label>
-          <select class="form-control" id="new-user-role">
-            <option value="USER">일반 사용자</option>
-            <option value="ADMIN">관리자</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="addUser()" style="width:100%;">➕ 계정 추가</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ── 프로젝트 모달 ── -->
 <div id="project-modal" class="modal-overlay">
   <div class="modal">
@@ -1353,7 +1275,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbwcE3G95SrUzNsyz0TKUfqXlnqYlWo1ToGVU3mjz20Yc1YbOodoER_lYoOLU8hpc1JDGQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbytf1aAB_aU-RXZVzsr4EfQdRbsrGCBWcIBBAHdJlE6HnWJEKItP-2toa636W-Da3830Q/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -1379,6 +1301,7 @@ function gradeBadge(grade) {
 }
 // ── 전역 상태 ──────────────────────────────────
 let TOKEN = localStorage.getItem("token") || "";
+let CURRENT_USER_ROLE = localStorage.getItem("userRole") || "USER";
 let CURRENT_ENG_ID = null;
 let ALL_ENGINEERS = [];
 let ALL_ENGINEERS_FILTERED = [];
@@ -1449,6 +1372,7 @@ async function doLogin() {
   try {
     const data = await apiPost("login", { username: id, password: pw });
     TOKEN = data.token;
+    CURRENT_USER_ROLE = data.role;
     localStorage.setItem("token", TOKEN);
     localStorage.setItem("userRole", data.role);
     localStorage.setItem("userName", data.name);
@@ -1935,10 +1859,8 @@ function resetUpload() {
 
 function doLogout() {
   TOKEN = "";
-  // 종심제 배치현황은 로그아웃 후에도 보존
-  const jongsimjeBackup = localStorage.getItem("jongsimje");
+  CURRENT_USER_ROLE = "USER";
   localStorage.clear();
-  if (jongsimjeBackup) localStorage.setItem("jongsimje", jongsimjeBackup);
   location.reload();
 }
 
@@ -2095,79 +2017,6 @@ function printJongsimje() {
       <tbody>${rows}</tbody>
     </table>`;
   openPrintWindow("종심제 배치현황", body);
-}
-
-// ── 계정 관리 ────────────────────────────────────────────────
-function openAccountModal() {
-  // 탭 초기화
-  switchTab("acc-tab", "pw", document.querySelector('#account-modal .tab'));
-  ["acc-cur-pw","acc-new-pw","acc-new-pw2","new-user-id","new-user-name","new-user-pw"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-  openModal("account-modal");
-  // 사이드바 닫기
-  document.getElementById("sidebar").classList.remove("open");
-  const ov = document.getElementById("sidebar-overlay");
-  if (ov) ov.classList.remove("show");
-}
-
-async function changePassword() {
-  const cur = document.getElementById("acc-cur-pw").value;
-  const nw  = document.getElementById("acc-new-pw").value;
-  const nw2 = document.getElementById("acc-new-pw2").value;
-  if (!cur || !nw || !nw2) { toast("모든 항목을 입력하세요", "error"); return; }
-  if (nw.length < 6) { toast("새 비밀번호는 6자 이상이어야 합니다", "error"); return; }
-  if (nw !== nw2) { toast("새 비밀번호가 일치하지 않습니다", "error"); return; }
-  try {
-    await apiPost("changePassword", { currentPassword: cur, newPassword: nw });
-    toast("✅ 비밀번호가 변경되었습니다. 다시 로그인해주세요.", "success");
-    setTimeout(() => { closeModal("account-modal"); doLogout(); }, 2000);
-  } catch(e) { toast("변경 실패: " + e.message, "error"); }
-}
-
-async function loadUsers() {
-  const el = document.getElementById("users-list");
-  el.innerHTML = '<div class="loading-overlay"><div class="spinner"></div> 로딩 중...</div>';
-  try {
-    const users = await api("getUsers");
-    el.innerHTML = users.length ? `
-      <table style="width:100%;font-size:13px;">
-        <thead><tr><th>아이디</th><th>이름</th><th>권한</th><th>마지막 로그인</th><th>관리</th></tr></thead>
-        <tbody>${users.map(u => `<tr>
-          <td style="font-family:monospace;">${u.아이디}</td>
-          <td>${u.이름}</td>
-          <td><span class="badge ${u.권한==='ADMIN'?'badge-blue':'badge-gray'}">${u.권한}</span></td>
-          <td style="font-size:11px;color:var(--text3);">${u.마지막로그인 ? u.마지막로그인.slice(0,10) : "-"}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteUser('${u.ID}','${u.아이디}')">삭제</button></td>
-        </tr>`).join("")}</tbody>
-      </table>` : '<div class="empty-state"><p>등록된 계정이 없습니다</p></div>';
-  } catch(e) { el.innerHTML = `<div class="empty-state"><p style="color:var(--danger);">${e.message}</p></div>`; }
-}
-
-async function addUser() {
-  const id   = document.getElementById("new-user-id").value.trim();
-  const name = document.getElementById("new-user-name").value.trim();
-  const pw   = document.getElementById("new-user-pw").value;
-  const role = document.getElementById("new-user-role").value;
-  if (!id || !name || !pw) { toast("아이디, 이름, 비밀번호는 필수입니다", "error"); return; }
-  if (pw.length < 6) { toast("비밀번호는 6자 이상이어야 합니다", "error"); return; }
-  try {
-    await apiPost("addUser", { username: id, password: pw, name, role });
-    toast(`✅ 계정 '${id}' 추가 완료`, "success");
-    ["new-user-id","new-user-name","new-user-pw"].forEach(eid => document.getElementById(eid).value = "");
-    document.getElementById("new-user-role").value = "USER";
-    loadUsers();
-  } catch(e) { toast("추가 실패: " + e.message, "error"); }
-}
-
-async function deleteUser(userId, username) {
-  if (!confirm(`'${username}' 계정을 삭제하시겠습니까?`)) return;
-  try {
-    await apiPost("deleteUser", { userId });
-    toast(`✅ '${username}' 삭제 완료`, "success");
-    loadUsers();
-  } catch(e) { toast("삭제 실패: " + e.message, "error"); }
 }
 
 function installPWA() {
@@ -3048,12 +2897,23 @@ function exportSearchResult() {
 }
 
 // ── 종심제 배치현황 ────────────────────────────────────────────
-let JONGSIMJE_DATA = JSON.parse(localStorage.getItem("jongsimje") || "[]");
+let JONGSIMJE_DATA = []; // Google Sheets와 동기화
 
-function loadJongsimje() {
+async function loadJongsimje() {
   const tbody = document.getElementById("jongsimje-table-body");
   const cardList = document.getElementById("jongsimje-card-list");
   if (!tbody || !cardList) return;
+
+  // 로딩 표시
+  if (cardList) cardList.innerHTML = '<div class="empty-state"><div class="spinner"></div> 로딩 중...</div>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="loading-overlay"><div class="spinner"></div></td></tr>';
+
+  try {
+    JONGSIMJE_DATA = await api("getJongsimje");
+  } catch(e) {
+    toast("배치현황 로딩 실패: " + e.message, "error");
+    JONGSIMJE_DATA = [];
+  }
 
   const fmt = arr => (arr||[]).filter(Boolean).join(", ") || "-";
   const fmtBr = arr => (arr||[]).filter(Boolean).join("<br>") || "-";
@@ -3151,41 +3011,55 @@ function editJongsimje(idx) {
   document.getElementById("jongsimje-form").scrollIntoView({ behavior: "smooth" });
 }
 
-function saveJongsimje() {
+async function saveJongsimje() {
   const 현장명 = document.getElementById("jj-site").value.trim();
   if (!현장명) { toast("현장명을 입력하세요", "error"); return; }
   const getVals = role => [0,1,2,3,4].map(i => {
     const el = document.getElementById("jj-" + role + "-" + i);
     return el ? el.value.trim() : "";
   }).filter(Boolean);
-  const 배치일 = document.getElementById("jj-date").value;
-  const 비고 = document.getElementById("jj-note").value.trim();
+
   const record = {
-    현장명, 배치일, 비고,
+    현장명,
+    배치일: document.getElementById("jj-date").value,
+    비고:   document.getElementById("jj-note").value.trim(),
     현장소장: getVals("소장"),
     공사담당: getVals("공사"),
     안전담당: getVals("안전"),
     품질담당: getVals("품질"),
   };
+
   const editIdx = document.getElementById("jj-edit-idx").value;
-  if (editIdx !== "") {
-    JONGSIMJE_DATA[parseInt(editIdx)] = record; // 수정
-    toast("수정 완료", "success");
-  } else {
-    JONGSIMJE_DATA.push(record); // 신규 추가
-    toast("배치 등록 완료", "success");
+  try {
+    if (editIdx !== "") {
+      // 수정: 해당 행의 ID 가져와서 API 호출
+      const targetId = JONGSIMJE_DATA[parseInt(editIdx)]?.ID;
+      if (!targetId) throw new Error("ID를 찾을 수 없습니다.");
+      await apiPost("updateJongsimje", { ...record, id: targetId });
+      toast("수정 완료", "success");
+    } else {
+      // 신규 등록
+      await apiPost("addJongsimje", record);
+      toast("배치 등록 완료", "success");
+    }
+    closeJongsimjeForm();
+    await loadJongsimje(); // Sheets에서 최신 데이터 로드
+  } catch(e) {
+    toast("저장 실패: " + e.message, "error");
   }
-  localStorage.setItem("jongsimje", JSON.stringify(JONGSIMJE_DATA));
-  closeJongsimjeForm();
-  loadJongsimje();
 }
 
-function deleteJongsimje(idx) {
+async function deleteJongsimje(idx) {
   if (!confirm("이 배치현황을 삭제하시겠습니까?")) return;
-  JONGSIMJE_DATA.splice(idx, 1);
-  localStorage.setItem("jongsimje", JSON.stringify(JONGSIMJE_DATA));
-  loadJongsimje();
-  toast("삭제 완료", "success");
+  const targetId = JONGSIMJE_DATA[idx]?.ID;
+  if (!targetId) { toast("ID를 찾을 수 없습니다.", "error"); return; }
+  try {
+    await apiPost("deleteJongsimje", { id: targetId });
+    toast("삭제 완료", "success");
+    await loadJongsimje();
+  } catch(e) {
+    toast("삭제 실패: " + e.message, "error");
+  }
 }
 
 // ── 프로젝트 ────────────────────────────────────
