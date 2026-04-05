@@ -1294,6 +1294,23 @@ function fmtDate(val) {
   return s.slice(0,10);
 }
 
+// 배치일 날짜 정규화 (Sheets에서 오는 다양한 형식 처리)
+function fmtJJDate(val) {
+  if (!val) return "";
+  const s = String(val).trim();
+  if (!s || s === "undefined" || s === "null" || s === "-") return "";
+  // YYYY-MM-DD 형식이면 그대로
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Date 문자열 형식이면 변환
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.getFullYear() + "-" +
+      String(d.getMonth()+1).padStart(2,"0") + "-" +
+      String(d.getDate()).padStart(2,"0");
+  }
+  return s.slice(0,10);
+}
+
 function gradeBadge(grade) {
   if (!grade) return '<span style="color:var(--text3);font-size:12px;">-</span>';
   const map = { 특급: "badge-특급", 고급: "badge-고급", 중급: "badge-중급", 초급: "badge-초급" };
@@ -2909,11 +2926,22 @@ async function loadJongsimje() {
   if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="loading-overlay"><div class="spinner"></div></td></tr>';
 
   try {
-    JONGSIMJE_DATA = await api("getJongsimje");
+    const raw = await api("getJongsimje");
+    // 배치일 날짜 정규화
+    JONGSIMJE_DATA = raw.map(r => ({ ...r, 배치일: fmtJJDate(r.배치일) }));
   } catch(e) {
     toast("배치현황 로딩 실패: " + e.message, "error");
     JONGSIMJE_DATA = [];
   }
+
+  renderJongsimje();
+}
+
+// 렌더링만 별도 함수로 분리 (데이터 변경 시 즉시 호출)
+function renderJongsimje() {
+  const tbody = document.getElementById("jongsimje-table-body");
+  const cardList = document.getElementById("jongsimje-card-list");
+  if (!tbody || !cardList) return;
 
   const fmt = arr => (arr||[]).filter(Boolean).join(", ") || "-";
   const fmtBr = arr => (arr||[]).filter(Boolean).join("<br>") || "-";
@@ -2928,7 +2956,7 @@ async function loadJongsimje() {
         <td style="font-size:12px;">${fmtBr(r.공사담당)}</td>
         <td style="font-size:12px;">${fmtBr(r.안전담당)}</td>
         <td style="font-size:12px;">${fmtBr(r.품질담당)}</td>
-        <td style="white-space:nowrap;">${r.배치일||"-"}</td>
+        <td style="white-space:nowrap;">${fmtJJDate(r.배치일)||"-"}</td>
         <td style="font-size:12px;color:var(--text2);">${r.비고||"-"}</td>
         <td style="white-space:nowrap;">
           <button class="btn btn-secondary btn-sm" onclick="editJongsimje(${i})" style="margin-right:4px;">수정</button>
@@ -2943,7 +2971,7 @@ async function loadJongsimje() {
         <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--bg2);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <strong style="font-size:16px;">${r.현장명}</strong>
-            <span style="font-size:11px;color:var(--text3);">${r.배치일||""}</span>
+            <span style="font-size:11px;color:var(--text3);">${fmtJJDate(r.배치일)||""}</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
             <div style="background:var(--surface);border-radius:8px;padding:10px;">
@@ -3021,7 +3049,7 @@ async function saveJongsimje() {
 
   const record = {
     현장명,
-    배치일: document.getElementById("jj-date").value,
+    배치일: fmtJJDate(document.getElementById("jj-date").value),
     비고:   document.getElementById("jj-note").value.trim(),
     현장소장: getVals("소장"),
     공사담당: getVals("공사"),
@@ -3030,22 +3058,39 @@ async function saveJongsimje() {
   };
 
   const editIdx = document.getElementById("jj-edit-idx").value;
-  try {
-    if (editIdx !== "") {
-      // 수정: 해당 행의 ID 가져와서 API 호출
-      const targetId = JONGSIMJE_DATA[parseInt(editIdx)]?.ID;
-      if (!targetId) throw new Error("ID를 찾을 수 없습니다.");
-      await apiPost("updateJongsimje", { ...record, id: targetId });
-      toast("수정 완료", "success");
-    } else {
-      // 신규 등록
-      await apiPost("addJongsimje", record);
-      toast("배치 등록 완료", "success");
-    }
+  const isEdit = editIdx !== "";
+
+  // ── 낙관적 업데이트: API 응답 전에 즉시 UI 반영 ──
+  if (isEdit) {
+    const idx = parseInt(editIdx);
+    const targetId = JONGSIMJE_DATA[idx]?.ID;
+    if (!targetId) { toast("ID를 찾을 수 없습니다.", "error"); return; }
+    JONGSIMJE_DATA[idx] = { ...JONGSIMJE_DATA[idx], ...record };
+    toast("수정 완료", "success");
     closeJongsimjeForm();
-    await loadJongsimje(); // Sheets에서 최신 데이터 로드
-  } catch(e) {
-    toast("저장 실패: " + e.message, "error");
+    renderJongsimje(); // 즉시 화면 업데이트
+    // 백그라운드에서 Sheets 동기화
+    apiPost("updateJongsimje", { ...record, id: targetId })
+      .catch(e => { toast("서버 동기화 실패: " + e.message, "error"); loadJongsimje(); });
+  } else {
+    // 신규: 임시 ID로 즉시 추가
+    const tempRecord = { ...record, ID: "TEMP_" + Date.now() };
+    JONGSIMJE_DATA.push(tempRecord);
+    toast("배치 등록 완료", "success");
+    closeJongsimjeForm();
+    renderJongsimje(); // 즉시 화면 업데이트
+    // 백그라운드에서 Sheets에 저장 후 실제 ID로 교체
+    apiPost("addJongsimje", record)
+      .then(res => {
+        // 임시 ID를 실제 ID로 교체
+        const ti = JONGSIMJE_DATA.findIndex(r => r.ID === tempRecord.ID);
+        if (ti >= 0) JONGSIMJE_DATA[ti].ID = res.id;
+      })
+      .catch(e => {
+        toast("서버 동기화 실패: " + e.message, "error");
+        JONGSIMJE_DATA = JONGSIMJE_DATA.filter(r => r.ID !== tempRecord.ID);
+        renderJongsimje();
+      });
   }
 }
 
@@ -3053,13 +3098,16 @@ async function deleteJongsimje(idx) {
   if (!confirm("이 배치현황을 삭제하시겠습니까?")) return;
   const targetId = JONGSIMJE_DATA[idx]?.ID;
   if (!targetId) { toast("ID를 찾을 수 없습니다.", "error"); return; }
-  try {
-    await apiPost("deleteJongsimje", { id: targetId });
-    toast("삭제 완료", "success");
-    await loadJongsimje();
-  } catch(e) {
-    toast("삭제 실패: " + e.message, "error");
-  }
+  const deleted = JONGSIMJE_DATA.splice(idx, 1)[0]; // 즉시 로컬 삭제
+  toast("삭제 완료", "success");
+  renderJongsimje(); // 즉시 화면 업데이트
+  // 백그라운드에서 Sheets 동기화
+  apiPost("deleteJongsimje", { id: targetId })
+    .catch(e => {
+      toast("서버 동기화 실패: " + e.message, "error");
+      JONGSIMJE_DATA.splice(idx, 0, deleted); // 실패 시 복원
+      renderJongsimje();
+    });
 }
 
 // ── 프로젝트 ────────────────────────────────────
