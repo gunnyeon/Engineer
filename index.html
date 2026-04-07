@@ -1275,7 +1275,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbwNBCh7qo2S5-9fN4LtHpQfUe6TQiXi3YI19xQr7CAQ4yvuId88xjgMlBAO4Zljf8RL3A/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxAOrXZVBUG3oPwM9eVHoA3vejUwjJwBqEb5Ip4c9tqfzMpwgaydpAwPdehTIX0KsrPnw/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -2217,7 +2217,14 @@ function renderTopEngineers(list) {
 // ── 기술인 목록 ─────────────────────────────────
 async function loadEngineers() {
   try {
-    ALL_ENGINEERS = await api("getEngineers");
+    const raw = await api("getEngineers");
+    // 소속부서 오름차순 → 같은 부서 내 총경력연수 내림차순
+    ALL_ENGINEERS = raw.sort((a, b) => {
+      const deptA = a["소속부서"] || "";
+      const deptB = b["소속부서"] || "";
+      if (deptA !== deptB) return deptA.localeCompare(deptB, "ko");
+      return (parseFloat(b["총경력연수"]) || 0) - (parseFloat(a["총경력연수"]) || 0);
+    });
     ALL_ENGINEERS_FILTERED = [...ALL_ENGINEERS];
     populateDeptFilter();
     renderEngineersTable();
@@ -2249,6 +2256,13 @@ function filterEngineers() {
       else if (certFilter !== "any" && !certs.includes(certFilter)) return false;
     }
     return true;
+  });
+  // 필터 후에도 소속부서·경력 순 정렬 유지
+  ALL_ENGINEERS_FILTERED.sort((a, b) => {
+    const deptA = a["소속부서"] || "";
+    const deptB = b["소속부서"] || "";
+    if (deptA !== deptB) return deptA.localeCompare(deptB, "ko");
+    return (parseFloat(b["총경력연수"]) || 0) - (parseFloat(a["총경력연수"]) || 0);
   });
   CURRENT_PAGE = 1;
   renderEngineersTable();
@@ -3214,7 +3228,14 @@ function resetReport() {
 
 function renderReport(data) {
   const eng = data.기술인;
-  const exps = data.경력목록;
+  // 참여시작일 오름차순 정렬 (가장 오래된 경력부터)
+  const exps = (data.경력목록 || []).slice().sort((a, b) => {
+    const da = a["참여시작일"] || "";
+    const db = b["참여시작일"] || "";
+    if (da < db) return -1;
+    if (da > db) return 1;
+    return 0;
+  });
   const certs = data.자격증목록;
   const wtStats = data.공종별경력;
 
