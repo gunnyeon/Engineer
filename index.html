@@ -762,10 +762,17 @@ tr:hover td { background: var(--surface); }
             </div>
 
             <div class="form-group" style="margin:0;">
-              <label class="form-label">책임정도</label>
-              <select class="form-control" id="s-chaegim">
-                <option value="">전체</option>
-              </select>
+              <label class="form-label">책임정도 <span style="font-size:10px;color:var(--text3);">(복수)</span></label>
+              <div id="s-chaegim-wrap" style="border:1.5px solid var(--border);border-radius:7px;background:var(--bg2);position:relative;">
+                <div onclick="toggleDropdown('s-chaegim')"
+                  style="padding:9px 12px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                  <span id="s-chaegim-label" style="color:var(--text3);">전체</span>
+                  <span style="font-size:10px;color:var(--text3);">▼</span>
+                </div>
+                <div id="s-chaegim-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--border);border-top:none;border-radius:0 0 7px 7px;z-index:200;max-height:180px;overflow-y:auto;box-shadow:var(--shadow-md);">
+                  <div id="s-chaegim-options" style="padding:4px 0;"></div>
+                </div>
+              </div>
             </div>
 
             <div class="form-group" style="margin:0;">
@@ -1275,7 +1282,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbz-6S-RR1LvYmO3WH2UV-SYgUP37pwoKlnYJvlJa3RCgGvNTxfISWciHvBWEjBTiomblQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyWrcovzM0Ao90SlcGT-FJC8xC5aFYtQ7E2GT3KpwADnzDMOKmVO4dE1tLk2OXwTVIkYA/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -1930,20 +1937,40 @@ function openPrintWindow(title, bodyHtml) {
   w.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8"><title>${title}</title>
     <style>
+
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif; font-size: 11px; padding: 20px; color: #000; }
-      h2 { font-size: 16px; text-align: center; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #000; }
-      .meta { font-size: 10px; color: #666; text-align: right; margin-bottom: 12px; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-      th { background: #1a56db; color: #fff; padding: 6px 8px; font-size: 10px; text-align: center; }
-      td { border: 1px solid #ddd; padding: 5px 7px; font-size: 10px; vertical-align: top; }
-      tr:nth-child(even) td { background: #f8fafc; }
-      .badge { display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 9px;
-               background: #dbeafe; color: #1e40af; margin: 1px; }
+      body {
+        font-family: 'Malgun Gothic','Apple SD Gothic Neo','맑은 고딕',sans-serif;
+        font-size: 9pt; line-height: 1.3; padding: 8mm; color: #000;
+      }
+      h2 {
+        font-size: 14pt; text-align: center; letter-spacing: 2px;
+        margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #000;
+      }
+      .meta { font-size: 8pt; color: #444; text-align: right; margin-bottom: 8px; }
+      .footer { font-size: 7.5pt; color: #666; text-align: right; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 4px; }
+      table {
+        width: 100%; border-collapse: collapse; margin-bottom: 10px;
+        table-layout: fixed; word-break: break-all;
+      }
+      th {
+        background: #1a56db; color: #fff; padding: 4px 5px;
+        font-size: 8pt; text-align: center; vertical-align: middle;
+        border: 1px solid #1040b0; white-space: nowrap;
+      }
+      td {
+        border: 1px solid #ccc; padding: 3px 5px;
+        font-size: 8pt; vertical-align: middle; line-height: 1.3;
+      }
+      tr:nth-child(even) td { background: #f5f8ff; }
+      .badge {
+        display: inline-block; padding: 1px 4px; border-radius: 3px;
+        font-size: 7pt; background: #dbeafe; color: #1e40af; margin: 1px;
+      }
       .badge-green { background: #d1fae5; color: #065f46; }
-      .footer { font-size: 9px; color: #999; text-align: right; margin-top: 12px; }
-      @page { size: A4 landscape; margin: 12mm; }
+      @page { size: A4 landscape; margin: 10mm; }
       @media print { body { padding: 0; } }
+
     </style>
   </head><body>
     ${bodyHtml}
@@ -1973,9 +2000,14 @@ function printEngineerList() {
       <td>${e["연락처"]||"-"}</td>
     </tr>`).join("");
   const body = `
-    <h2>기술인 목록</h2>
-    <div class="meta">총 ${data.length}명 | 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
+    <h2>기 술 인 목 록</h2>
+    <div class="meta">총 ${data.length}명 &nbsp;|&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
     <table>
+      <colgroup>
+        <col style="width:4%"><col style="width:9%"><col style="width:8%">
+        <col style="width:10%"><col style="width:7%"><col style="width:8%">
+        <col style="width:8%"><col style="width:7%"><col style="width:28%"><col style="width:11%">
+      </colgroup>
       <thead><tr><th>No</th><th>사번</th><th>이름</th><th>소속부서</th><th>직급</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>자격증</th><th>연락처</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -2002,9 +2034,14 @@ function printSearchResult() {
       <td>${e["연락처"]||"-"}</td>
     </tr>`).join("");
   const body = `
-    <h2>전문가 검색 결과</h2>
-    <div class="meta">총 ${data.length}명 | 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
+    <h2>전 문 가 검 색 결 과</h2>
+    <div class="meta">총 ${data.length}명 &nbsp;|&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
     <table>
+      <colgroup>
+        <col style="width:4%"><col style="width:9%"><col style="width:8%">
+        <col style="width:10%"><col style="width:7%"><col style="width:7%">
+        <col style="width:7%"><col style="width:7%"><col style="width:30%"><col style="width:11%">
+      </colgroup>
       <thead><tr><th>No</th><th>사번</th><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>조건경력</th><th>자격증</th><th>연락처</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -2027,9 +2064,14 @@ function printJongsimje() {
       <td>${r.비고||"-"}</td>
     </tr>`).join("");
   const body = `
-    <h2>종심제 배치현황</h2>
-    <div class="meta">총 ${JONGSIMJE_DATA.length}개 현장 | 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
+    <h2>종 심 제 배 치 현 황</h2>
+    <div class="meta">총 ${JONGSIMJE_DATA.length}개 현장 &nbsp;|&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
     <table>
+      <colgroup>
+        <col style="width:4%"><col style="width:18%"><col style="width:12%">
+        <col style="width:20%"><col style="width:14%"><col style="width:14%">
+        <col style="width:9%"><col style="width:9%">
+      </colgroup>
       <thead><tr><th>No</th><th>현장명</th><th>현장소장</th><th>공사담당</th><th>안전담당</th><th>품질담당</th><th>배치일</th><th>비고</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -2711,29 +2753,40 @@ async function loadSearchFilters() {
     // 전용 API로 한 번에 모든 필터 옵션 수집 (N+1 제거)
     const filters = await api("getSearchFilters");
 
+    // ── 전체선택 행 생성 헬퍼 ──────────────────────────────────
+    function makeAllRow(cls, labelId, updateFn) {
+      return `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);border-bottom:1px solid var(--border);">
+        <input type="checkbox" class="all-check-${cls}" onchange="toggleAllCheck('${cls}','${labelId}',${updateFn})"> 전체 선택</label>`;
+    }
+    function makeRow(cls, v, updateFn) {
+      return `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="checkbox" class="${cls}" value="${v}" onchange="${updateFn}"> ${v}</label>`;
+    }
+
     // 공사유형 대구분
     const ptMajorOpts = document.getElementById("s-projtype-major-options");
-    if (ptMajorOpts) ptMajorOpts.innerHTML = (filters.공사유형_대구분||[]).map(v =>
-      `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--text);">
-        <input type="checkbox" class="pt-major-checkbox" value="${v}" onchange="updateProjtypeMajorLabel()"> ${v}</label>`).join("");
+    if (ptMajorOpts) ptMajorOpts.innerHTML =
+      makeAllRow("pt-major-checkbox","s-projtype-major-label","updateProjtypeMajorLabel") +
+      (filters.공사유형_대구분||[]).map(v => makeRow("pt-major-checkbox", v, "updateProjtypeMajorLabel()")).join("");
 
-    // 공사유형 소구분 (경력상세 M열 실제 데이터 기반)
+    // 공사유형 소구분
     const ptMinorOpts = document.getElementById("s-projtype-minor-options");
-    if (ptMinorOpts) ptMinorOpts.innerHTML = (filters.공사유형_소구분||[]).map(v =>
-      `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--text);">
-        <input type="checkbox" class="pt-minor-checkbox" value="${v}" onchange="updateProjtypeMinorLabel()"> ${v}</label>`).join("");
+    if (ptMinorOpts) ptMinorOpts.innerHTML =
+      makeAllRow("pt-minor-checkbox","s-projtype-minor-label","updateProjtypeMinorLabel") +
+      (filters.공사유형_소구분||[]).map(v => makeRow("pt-minor-checkbox", v, "updateProjtypeMinorLabel()")).join("");
 
     // 담당업무
     const wtOpts = document.getElementById("s-worktype-options");
-    if (wtOpts) wtOpts.innerHTML = (filters.담당업무||[]).map(v =>
-      `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--text);">
-        <input type="checkbox" class="wt-checkbox" value="${v}" onchange="updateWorktypeLabel()"> ${v}</label>`).join("");
+    if (wtOpts) wtOpts.innerHTML =
+      makeAllRow("wt-checkbox","s-worktype-label","updateWorktypeLabel") +
+      (filters.담당업무||[]).map(v => makeRow("wt-checkbox", v, "updateWorktypeLabel()")).join("");
 
-    // 책임정도 드롭다운 세팅
-    const chaegimSel = document.getElementById("s-chaegim");
-    if (chaegimSel && filters.책임정도 && filters.책임정도.length) {
-      chaegimSel.innerHTML = '<option value="">전체</option>' +
-        filters.책임정도.map(v => `<option value="${v}">${v}</option>`).join("");
+    // 책임정도 다중선택 드롭다운 세팅
+    const chaegimOpts = document.getElementById("s-chaegim-options");
+    if (chaegimOpts && filters.책임정도 && filters.책임정도.length) {
+      chaegimOpts.innerHTML =
+        makeAllRow("chaegim-checkbox","s-chaegim-label","updateChaegimLabel") +
+        filters.책임정도.map(v => makeRow("chaegim-checkbox", v, "updateChaegimLabel()")).join("");
     }
   } catch(e) {
     console.error("필터 로딩 실패:", e);
@@ -2754,17 +2807,46 @@ function clearItems(cls, labelId) {
   const lbl = document.getElementById(labelId);
   if (lbl) { lbl.textContent = "전체"; lbl.style.color = "var(--text3)"; }
 }
+// 전체선택 토글 헬퍼
+function toggleAllCheck(cls, labelId, updateFn) {
+  const allChk = document.querySelector(".all-check-" + cls);
+  const items  = document.querySelectorAll("." + cls + ":not(.all-check-" + cls + ")");
+  items.forEach(c => c.checked = allChk.checked);
+  updateFn();
+}
+// 개별 체크박스 변경 시 전체선택 상태 동기화
+function syncAllCheck(cls) {
+  const allChk = document.querySelector(".all-check-" + cls);
+  if (!allChk) return;
+  const items   = [...document.querySelectorAll("." + cls + ":not(.all-check-" + cls + ")")];
+  allChk.checked = items.length > 0 && items.every(c => c.checked);
+}
+
 function updateProjtypeMajorLabel() {
+  syncAllCheck("pt-major-checkbox");
   const sel = getSelectedItems("pt-major-checkbox");
   const lbl = document.getElementById("s-projtype-major-label");
   lbl.textContent = sel.length ? sel.join(", ") : "전체";
   lbl.style.color = sel.length ? "var(--text)" : "var(--text3)";
 }
 function updateProjtypeMinorLabel() {
+  syncAllCheck("pt-minor-checkbox");
   const sel = getSelectedItems("pt-minor-checkbox");
   const lbl = document.getElementById("s-projtype-minor-label");
   lbl.textContent = sel.length ? sel.join(", ") : "전체";
   lbl.style.color = sel.length ? "var(--text)" : "var(--text3)";
+}
+function updateChaegimLabel() {
+  syncAllCheck("chaegim-checkbox");
+  const sel = getSelectedItems("chaegim-checkbox");
+  const lbl = document.getElementById("s-chaegim-label");
+  if (lbl) {
+    lbl.textContent = sel.length ? sel.join(", ") : "전체";
+    lbl.style.color = sel.length ? "var(--text)" : "var(--text3)";
+  }
+}
+function getSelectedChaegim() {
+  return [...document.querySelectorAll(".chaegim-checkbox:checked")].map(c => c.value);
 }
 
 // 담당업무 다중선택 헬퍼
@@ -2780,6 +2862,7 @@ function clearWorktypeSelection() {
   updateWorktypeLabel();
 }
 function updateWorktypeLabel() {
+  syncAllCheck("wt-checkbox");
   const selected = getSelectedWorktypes();
   const label = document.getElementById("s-worktype-label");
   if (selected.length === 0) {
@@ -2792,7 +2875,7 @@ function updateWorktypeLabel() {
 }
 // 드롭다운 외부 클릭 시 닫기
 document.addEventListener("click", function(e) {
-  ["s-projtype-major","s-projtype-minor","s-worktype"].forEach(id => {
+  ["s-projtype-major","s-projtype-minor","s-worktype","s-chaegim"].forEach(id => {
     const wrap = document.getElementById(id+"-wrap");
     if (wrap && !wrap.contains(e.target)) {
       const dd = document.getElementById(id+"-dropdown");
@@ -2807,7 +2890,7 @@ async function doSearch() {
     workType: getSelectedWorktypes().join(","),   // 담당업무 (쉼표 구분 복수)
     projMajor: getSelectedItems("pt-major-checkbox").join(","),
     projMinor: getSelectedItems("pt-minor-checkbox").join(","),
-    chaegim: document.getElementById("s-chaegim").value, // 책임정도
+    chaegim: getSelectedChaegim().join(","), // 책임정도 (다중선택)
     archGrade: document.getElementById("s-arch-grade").value,
     qualGrade: document.getElementById("s-qual-grade").value,
     minExp: document.getElementById("s-minexp").value,
@@ -2909,6 +2992,9 @@ function clearSearch() {
   clearItems("pt-major-checkbox", "s-projtype-major-label");
   clearItems("pt-minor-checkbox", "s-projtype-minor-label");
   clearWorktypeSelection();
+  clearItems("chaegim-checkbox", "s-chaegim-label");
+  const cl = document.getElementById("s-chaegim-label");
+  if (cl) cl.textContent = "전체";
   document.getElementById("search-results").innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>';
   document.getElementById("search-count").textContent = "";
 }
@@ -3289,7 +3375,7 @@ function renderReport(data) {
         `).join("")}
       </table>
 
-      <div style="margin-top:20px;text-align:right;font-size:9px;color:#666;">
+      <div class="footer-area">
         발급일: ${new Date().toLocaleDateString("ko-KR")} &nbsp;|&nbsp; 건축사업본부 기술인 경력관리 시스템
       </div>
     </div>
@@ -3301,16 +3387,40 @@ function printReport() {
   const w = window.open("", "_blank");
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>경력증명서</title>
     <style>
-      * { box-sizing: border-box; }
-      body { font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif; font-size:9.5px; margin:0; padding:16px 20px; width:794px; }
-      h1 { font-size:15px; text-align:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:12px; }
-      .section-title { font-size:10px; font-weight:700; background:#f0f0f0; padding:3px 8px; margin:8px 0 4px; }
-      table { width:100%; border-collapse:collapse; table-layout:fixed; }
-      td, th { border:1px solid #bbb; padding:3px 4px; font-size:8.5px; word-break:break-all; }
-      th { background:#e8e8e8; font-weight:700; text-align:center; }
-      .detail-table td, .detail-table th { font-size:7.5px; padding:2px 3px; }
-      @page { size: A4 portrait; margin: 10mm; }
-      @media print { body { width:100%; padding:0; } }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'Malgun Gothic','Apple SD Gothic Neo','맑은 고딕',sans-serif;
+        font-size: 8.5pt; line-height: 1.3; margin: 0;
+        padding: 8mm 10mm; color: #000;
+      }
+      h1 {
+        font-size: 14pt; text-align: center; letter-spacing: 3px;
+        border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px;
+      }
+      .section-title {
+        font-size: 9pt; font-weight: 700; background: #e8e8e8;
+        padding: 3px 8px; margin: 8px 0 3px; letter-spacing: 0.5px;
+      }
+      table {
+        width: 100%; border-collapse: collapse; table-layout: fixed;
+        margin-bottom: 6px; word-break: break-all;
+      }
+      td, th {
+        border: 1px solid #aaa; padding: 3px 4px;
+        font-size: 8pt; vertical-align: middle; line-height: 1.3;
+      }
+      th { background: #d8d8d8; font-weight: 700; text-align: center; }
+      .detail-table td, .detail-table th {
+        font-size: 7pt; padding: 2px 3px; vertical-align: middle;
+      }
+      .detail-table th { background: #1a56db; color: #fff; border-color: #1040b0; }
+      tr:nth-child(even) td { background: #f5f8ff; }
+      .footer-area {
+        margin-top: 10px; font-size: 8pt; text-align: right;
+        color: #555; border-top: 1px solid #ccc; padding-top: 4px;
+      }
+      @page { size: A4 portrait; margin: 8mm; }
+      @media print { body { padding: 0; } }
     </style></head><body>${content}<script>window.onload=function(){window.print();}<\/script></body></html>`);
   w.document.close();
 }
