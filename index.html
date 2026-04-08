@@ -3051,46 +3051,55 @@ async function doSearch() {
 }
 
 function clearSearch() {
-  // 텍스트/숫자 입력 초기화
+  // ① 텍스트/숫자 입력 초기화
   ["s-name","s-minexp"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
-  // select 초기화
+
+  // ② select 초기화
   ["s-arch-grade","s-qual-grade","s-certtype"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
-  // 다중선택 드롭다운 초기화 (체크박스 + 전체선택 + 라벨)
-  clearItems("pt-major-checkbox", "s-projtype-major-label");
-  clearItems("pt-minor-checkbox", "s-projtype-minor-label");
-  clearItems("wt-checkbox",       "s-worktype-label");
-  clearItems("chaegim-checkbox",  "s-chaegim-label");
-  // 전체선택 체크박스도 해제
-  ["all-check-pt-major-checkbox","all-check-pt-minor-checkbox",
-   "all-check-wt-checkbox","all-check-chaegim-checkbox"].forEach(cls => {
+
+  // ③ 다중선택 체크박스 전체 해제 (개별 + 전체선택 모두)
+  [
+    "pt-major-checkbox",
+    "pt-minor-checkbox",
+    "wt-checkbox",
+    "chaegim-checkbox"
+  ].forEach(cls => {
+    // 개별 체크박스 해제
     document.querySelectorAll("." + cls).forEach(c => c.checked = false);
+    // 전체선택 체크박스 해제
+    document.querySelectorAll(".all-check-" + cls).forEach(c => c.checked = false);
   });
-  // 라벨 텍스트 초기화
-  const labelMap = {
+
+  // ④ 라벨 텍스트 + 색상 초기화
+  const labelReset = {
     "s-projtype-major-label": "전체",
     "s-projtype-minor-label": "전체",
-    "s-worktype-label": "전체 (선택 안함)",
-    "s-chaegim-label": "전체"
+    "s-worktype-label":       "전체 (선택 안함)",
+    "s-chaegim-label":        "전체"
   };
-  Object.entries(labelMap).forEach(([id, txt]) => {
+  Object.entries(labelReset).forEach(([id, txt]) => {
     const el = document.getElementById(id);
     if (el) { el.textContent = txt; el.style.color = "var(--text3)"; }
   });
-  // 열린 드롭다운 모두 닫기
+
+  // ⑤ 열린 드롭다운 모두 닫기
   ["s-projtype-major","s-projtype-minor","s-worktype","s-chaegim"].forEach(id => {
     const dd = document.getElementById(id + "-dropdown");
     if (dd) dd.style.display = "none";
   });
-  // 검색 결과 및 PDF 버튼 초기화
-  document.getElementById("search-results").innerHTML =
+
+  // ⑥ 검색 결과 / 카운트 / PDF 버튼 초기화
+  const resultsEl = document.getElementById("search-results");
+  if (resultsEl) resultsEl.innerHTML =
     '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>';
-  document.getElementById("search-count").textContent = "";
+  const countEl = document.getElementById("search-count");
+  if (countEl) countEl.textContent = "";
   const pdfBtn = document.getElementById("search-pdf-btn");
   if (pdfBtn) pdfBtn.style.display = "none";
   window._searchResults = [];
