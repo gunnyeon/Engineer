@@ -921,7 +921,7 @@ tr:hover td { background: var(--surface); }
                 <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">이름 또는 사번 검색</label>
                 <div style="display:flex;gap:6px;">
                   <input type="text" class="form-control" id="report-search-input" placeholder="이름 또는 사번 입력..."
-                    style="max-width:220px;" oninput="filterReportList()" onkeypress="if(event.key==='Enter')loadReport()">
+                    style="max-width:220px;" oninput="filterReportList()" onkeypress="if(event.key==='Enter'){const q=this.value.trim().toLowerCase();const m=_reportEngineers.filter(e=>e['이름'].toLowerCase().includes(q)||(e['사번']||'').toLowerCase().includes(q));if(m.length>=1){selectReportEngineer(m[0].ID,m[0]['이름']+' ('+(m[0]['사번']||')+')');} else loadReport();}">
                   <button class="btn btn-primary" onclick="loadReport()">경력 조회</button>
                 </div>
                 <div id="report-search-results" style="position:relative;"></div>
@@ -961,10 +961,10 @@ tr:hover td { background: var(--surface); }
                ondrop="handleDrop(event)">
             <div style="font-size:32px;margin-bottom:10px;">📂</div>
             <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">파일을 여기에 드래그하거나</div>
-            <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">.xlsx 파일만 지원됩니다</div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">.xlsx 파일 여러 개 동시 업로드 지원</div>
             <label class="btn btn-primary" style="cursor:pointer;">
               파일 선택
-              <input type="file" id="excel-file-input" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
+              <input type="file" id="excel-file-input" accept=".xlsx" multiple style="display:none" onchange="handleFileSelect(event)">
             </label>
             <div id="file-selected-name" style="margin-top:10px;font-size:12px;color:var(--text2);"></div>
           </div>
@@ -1282,7 +1282,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbyWrcovzM0Ao90SlcGT-FJC8xC5aFYtQ7E2GT3KpwADnzDMOKmVO4dE1tLk2OXwTVIkYA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxVhPDmM4IGq1nAuFk5bIZPIN9ru72MkZCupq9SyfNTJYtlF59Q_-X5Oe4hryBofR9JxA/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -1440,12 +1440,44 @@ function handleDragLeave(e) {
 function handleDrop(e) {
   e.preventDefault();
   handleDragLeave(e);
-  const file = e.dataTransfer.files[0];
-  if (file) processExcelFile(file);
+  const files = [...e.dataTransfer.files].filter(f => f.name.endsWith(".xlsx"));
+  if (!files.length) { toast("xlsx 파일만 지원합니다", "error"); return; }
+  processExcelFiles(files);
 }
 function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (file) processExcelFile(file);
+  const files = [...e.target.files].filter(f => f.name.endsWith(".xlsx"));
+  if (!files.length) { toast("xlsx 파일만 지원합니다", "error"); return; }
+  processExcelFiles(files);
+}
+
+// 다중 파일 처리: 모든 파일을 읽어 데이터 병합
+function processExcelFiles(files) {
+  UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
+  let remaining = files.length;
+  const names = files.map(f => f.name).join(", ");
+  document.getElementById("file-selected-name").textContent = `📄 ${names} 읽는 중... (${files.length}개)`;
+
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const wb2 = XLSX.read(ev.target.result, { type: "array", cellDates: false });
+        _mergeSheetData(wb2);
+      } catch(err) {
+        toast(file.name + " 읽기 오류: " + err.message, "error");
+      }
+      remaining--;
+      if (remaining === 0) _finalizeUpload(names, files.length);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// 단일 파일 파싱 후 UPLOAD_DATA에 병합 (공통 파서)
+function _parseExcelFile(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false });
+  if (!UPLOAD_DATA) UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
+  _mergeSheetData(wb);
 }
 
 function processExcelFile(file) {
@@ -1457,7 +1489,18 @@ function processExcelFile(file) {
     try {
       const wb = XLSX.read(e.target.result, { type: "array", cellDates: false });
       UPLOAD_DATA = { engineers: [], experiences: [], certifications: [] };
+      _mergeSheetData(wb);
+      _finalizeUpload(file.name, 1);
+    } catch(err) {
+      toast("파일 읽기 오류: " + err.message, "error");
+      document.getElementById("file-selected-name").textContent = "";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
 
+// 공통 시트 파싱 함수 - UPLOAD_DATA에 데이터 병합
+function _mergeSheetData(wb) {
       // ① 기술인 기본정보 시트
       const ws1 = wb.Sheets["①기술인_기본정보"] || wb.Sheets[wb.SheetNames[0]];
       if (ws1) {
@@ -1530,24 +1573,18 @@ function processExcelFile(file) {
         })).filter(r => r.기술인사번 && r.자격증명 && r.기술인사번 !== "기술인사번*"); // 사번 필수
       }
 
-      document.getElementById("file-selected-name").textContent =
-        `✅ ${file.name} — 기술인 ${UPLOAD_DATA.engineers.length}명 · 경력 ${UPLOAD_DATA.experiences.length}건 · 자격증 ${UPLOAD_DATA.certifications.length}건`;
+}
 
-      // 카운트 배지
-      document.getElementById("up-count-eng").textContent = UPLOAD_DATA.engineers.length + "명";
-      document.getElementById("up-count-exp").textContent = UPLOAD_DATA.experiences.length + "건";
-      document.getElementById("up-count-cert").textContent = UPLOAD_DATA.certifications.length + "건";
-
-      document.getElementById("upload-preview").style.display = "block";
-      document.getElementById("upload-result").style.display = "none";
-      switchUploadTab("eng");
-
-    } catch(err) {
-      toast("파일 읽기 오류: " + err.message, "error");
-      document.getElementById("file-selected-name").textContent = "";
-    }
-  };
-  reader.readAsArrayBuffer(file);
+// 모든 파일 처리 완료 후 UI 업데이트
+function _finalizeUpload(names, fileCount) {
+  document.getElementById("file-selected-name").textContent =
+    `✅ ${fileCount > 1 ? fileCount + "개 파일" : names} — 기술인 ${UPLOAD_DATA.engineers.length}명 · 경력 ${UPLOAD_DATA.experiences.length}건 · 자격증 ${UPLOAD_DATA.certifications.length}건`;
+  document.getElementById("up-count-eng").textContent  = UPLOAD_DATA.engineers.length + "명";
+  document.getElementById("up-count-exp").textContent  = UPLOAD_DATA.experiences.length + "건";
+  document.getElementById("up-count-cert").textContent = UPLOAD_DATA.certifications.length + "건";
+  document.getElementById("upload-preview").style.display = "block";
+  document.getElementById("upload-result").style.display  = "none";
+  switchUploadTab("eng");
 }
 
 function formatExcelDate(val) {
@@ -1917,12 +1954,23 @@ function showPage(page) {
   };
   document.getElementById("page-title").textContent = titles[page] || "";
 
-  // 페이지별 데이터 로딩
-  if (page === "dashboard") loadDashboard();
-  else if (page === "engineers") loadEngineers();
-  else if (page === "jongsimje") loadJongsimje();
-  else if (page === "reports") loadReportEngineers();
-  else if (page === "search") { loadSearchFilters(); setTimeout(applySearchGridLayout, 50); }
+  // 페이지별 데이터 로딩 (즉시 표시 + 백그라운드 갱신)
+  if (page === "dashboard") {
+    loadDashboard();
+  } else if (page === "engineers") {
+    // 기존 데이터 있으면 즉시 렌더링 후 백그라운드 갱신
+    if (ALL_ENGINEERS.length) { renderEngineersTable(); }
+    loadEngineers();
+  } else if (page === "jongsimje") {
+    // 기존 데이터 있으면 즉시 렌더링 후 백그라운드 갱신
+    if (JONGSIMJE_DATA.length) { renderJongsimje(); }
+    loadJongsimje();
+  } else if (page === "reports") {
+    loadReportEngineers();
+  } else if (page === "search") {
+    loadSearchFilters();
+    setTimeout(applySearchGridLayout, 50);
+  }
 
   // 모바일: 사이드바 닫기 + 하단내비 업데이트
   document.getElementById("sidebar").classList.remove("open");
@@ -2140,10 +2188,17 @@ let chartWorktype, chartGrade, chartProjtype;
 
 async function loadDashboard() {
   try {
-    // 1분 캐시
-    // 대시보드 캐시 (10분, 데이터 변경 시 cacheClear("all")로 무효화)
-    let data = CACHE.dashboard && (Date.now() - CACHE.dashboardTime < 600000) ? CACHE.dashboard : null;
-    if (!data) {
+    // 캐시 있으면 즉시 렌더링 후 10분 경과 시 백그라운드 갱신
+    let data = CACHE.dashboard;
+    const expired = !data || (Date.now() - CACHE.dashboardTime > 600000);
+    if (data) {
+      // 캐시 즉시 표시
+      renderDashboardStats(data);
+      renderCharts(data);
+      renderTopEngineers(data.경력TOP5);
+    }
+    if (expired) {
+      // 백그라운드에서 최신 데이터 갱신
       data = await api("getDashboard");
       CACHE.dashboard = data;
       CACHE.dashboardTime = Date.now();
@@ -2260,7 +2315,6 @@ function renderTopEngineers(list) {
 async function loadEngineers() {
   try {
     const raw = await api("getEngineers");
-    // 소속부서 오름차순 → 같은 부서 내 총경력연수 내림차순
     ALL_ENGINEERS = raw.sort((a, b) => {
       const deptA = a["소속부서"] || "";
       const deptB = b["소속부서"] || "";
@@ -2271,7 +2325,7 @@ async function loadEngineers() {
     populateDeptFilter();
     renderEngineersTable();
   } catch(e) {
-    toast("기술인 로딩 실패: " + e.message, "error");
+    if (!ALL_ENGINEERS.length) toast("기술인 로딩 실패: " + e.message, "error");
   }
 }
 
@@ -3021,9 +3075,11 @@ async function loadJongsimje() {
   const cardList = document.getElementById("jongsimje-card-list");
   if (!tbody || !cardList) return;
 
-  // 로딩 표시
-  if (cardList) cardList.innerHTML = '<div class="empty-state"><div class="spinner"></div> 로딩 중...</div>';
-  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="loading-overlay"><div class="spinner"></div></td></tr>';
+  // 기존 데이터 없을 때만 로딩 스피너 표시
+  if (!JONGSIMJE_DATA.length) {
+    if (cardList) cardList.innerHTML = '<div class="empty-state"><div class="spinner"></div> 로딩 중...</div>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="loading-overlay"><div class="spinner"></div></td></tr>';
+  }
 
   try {
     const raw = await api("getJongsimje");
@@ -3264,6 +3320,11 @@ function filterReportList() {
     e["이름"].toLowerCase().includes(q) || (e["사번"]||"").toLowerCase().includes(q)
   ).slice(0, 8);
   if (!matched.length) { wrap.innerHTML = ""; return; }
+  // 정확히 1명 일치하면 자동 선택
+  if (matched.length === 1) {
+    selectReportEngineer(matched[0].ID, matched[0]["이름"] + " (" + (matched[0]["사번"]||"") + ")");
+    return;
+  }
   wrap.innerHTML = `<div style="position:absolute;top:0;left:0;background:var(--bg2);border:1px solid var(--border);border-radius:7px;z-index:100;width:300px;box-shadow:var(--shadow-md);">
     ${matched.map(e => `<div onclick="selectReportEngineer('${e.ID}','${e["이름"]} (${e["사번"]||""})')"
       style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);"
