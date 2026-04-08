@@ -1409,6 +1409,23 @@ async function doLogin() {
     showPage("dashboard");
     updateClock();
     toast("환영합니다, " + data.name + "님!", "success");
+    // 백그라운드에서 주요 데이터 미리 로드 (다음 페이지 이동 시 즉시 표시)
+    setTimeout(() => {
+      Promise.all([
+        api("getDashboard").then(d => { CACHE.dashboard = d; CACHE.dashboardTime = Date.now(); }).catch(()=>{}),
+        api("getEngineers").then(raw => {
+          ALL_ENGINEERS = raw.sort((a,b) => {
+            const da = a["소속부서"]||"", db = b["소속부서"]||"";
+            if (da !== db) return da.localeCompare(db,"ko");
+            return (parseFloat(b["총경력연수"])||0)-(parseFloat(a["총경력연수"])||0);
+          });
+          ALL_ENGINEERS_FILTERED = [...ALL_ENGINEERS];
+        }).catch(()=>{}),
+        api("getJongsimje").then(raw => {
+          JONGSIMJE_DATA = raw.map(r => ({ ...r, 배치일: fmtJJDate(r.배치일) }));
+        }).catch(()=>{})
+      ]);
+    }, 500); // 대시보드 렌더 후 백그라운드로 실행
   } catch(e) {
     showLoginError(e.message);
   } finally {
@@ -1506,7 +1523,7 @@ function _mergeSheetData(wb) {
       if (ws1) {
         // 1~2행: 타이틀/안내, 3행: 헤더 → range 옵션으로 3행부터 읽기
         const rows = XLSX.utils.sheet_to_json(ws1, { defval: "", range: 2 });
-        UPLOAD_DATA.engineers = rows.map(r => ({
+        UPLOAD_DATA.engineers.push(...rows.map(r => ({
           사번: String(r["사번"] || r["사번*"] || "").trim(),
           이름: String(r["이름*"] || r["이름"] || "").trim(),
           생년월일: formatExcelDate(r["생년월일"]),
@@ -1519,14 +1536,14 @@ function _mergeSheetData(wb) {
           품질분야등급: String(r["품질분야등급"] || "").trim(),
           입사일: formatExcelDate(r["입사일"]),
           비고: String(r["비고"] || "").trim(),
-        })).filter(r => r.이름 && r.이름 !== "이름*" && r.이름 !== "이름");
+        })).filter(r => r.이름 && r.이름 !== "이름*" && r.이름 !== "이름"));
       }
 
       // ② 경력 상세 시트
       const ws2 = wb.Sheets["②경력_프로젝트"] || wb.Sheets[wb.SheetNames[1]];
       if (ws2) {
         const rows = XLSX.utils.sheet_to_json(ws2, { defval: "", range: 2 });
-        UPLOAD_DATA.experiences = rows.map(r => {
+        const newExps = rows.map(r => {
           const start = formatExcelDate(r["참여시작일*"] || r["참여시작일"]);
           const end   = formatExcelDate(r["참여종료일*"] || r["참여종료일"]);
           // 인정일수: 직접입력 우선, 없으면 날짜 차이 자동계산
@@ -1556,21 +1573,22 @@ function _mergeSheetData(wb) {
             직위:           String(r["직위"] || "").trim(),
             담당업무:        String(r["담당업무"] || "").trim(),
           };
-        }).filter(r => r.기술인사번 && r.프로젝트명직접입력 && r.기술인사번 !== "기술인사번*"); // 사번 필수
+        }).filter(r => r.기술인사번 && r.프로젝트명직접입력 && r.기술인사번 !== "기술인사번*");
+        UPLOAD_DATA.experiences.push(...newExps);
       }
 
       // ③ 자격증 시트
       const ws3 = wb.Sheets["③자격증"] || wb.Sheets[wb.SheetNames[2]];
       if (ws3) {
         const rows = XLSX.utils.sheet_to_json(ws3, { defval: "", range: 2 });
-        UPLOAD_DATA.certifications = rows.map(r => ({
+        UPLOAD_DATA.certifications.push(...rows.map(r => ({
           기술인사번: String(r["기술인사번*"] || r["기술인사번"] || "").trim(),
           기술인이름: String(r["기술인이름*"] || r["기술인이름"] || "").trim(),
           자격증명: String(r["자격증명*"] || r["자격증명"] || "").trim(),
           자격증번호: String(r["자격증번호"] || "").trim(),
           취득일: formatExcelDate(r["취득일"]),
           발급기관: String(r["발급기관"] || "").trim(),
-        })).filter(r => r.기술인사번 && r.자격증명 && r.기술인사번 !== "기술인사번*"); // 사번 필수
+        })).filter(r => r.기술인사번 && r.자격증명 && r.기술인사번 !== "기술인사번*"));
       }
 
 }
@@ -1688,11 +1706,11 @@ function renderUploadPreview() {
 
 
 async function executeUpload() {
-  const btn = document.getElementById("exec-upload-btn");
+  const btn    = document.getElementById("exec-upload-btn");
   const status = document.getElementById("upload-status");
-  const eng = UPLOAD_DATA.engineers;
-  const exp = UPLOAD_DATA.experiences;
-  const cert = UPLOAD_DATA.certifications;
+  const eng    = UPLOAD_DATA.engineers;
+  const exp    = UPLOAD_DATA.experiences;
+  const cert   = UPLOAD_DATA.certifications;
 
   if (!eng.length && !exp.length && !cert.length) {
     toast("등록할 데이터가 없습니다", "error"); return;
@@ -1700,33 +1718,30 @@ async function executeUpload() {
   const total = eng.length + exp.length + cert.length;
   if (!confirm(`총 ${total}건을 등록하시겠습니까?\n기술인 ${eng.length}명 · 경력 ${exp.length}건 · 자격증 ${cert.length}건`)) return;
 
-  btn.disabled = true;
-  btn.textContent = "등록 중...";
+  btn.disabled = true; btn.textContent = "등록 중...";
   let succeeded = 0, failed = 0, errors = [];
 
-  // ① 기술인 배치 등록
+  // ① 기술인 등록
   if (eng.length > 0) {
     status.textContent = `⏳ 기술인 ${eng.length}명 등록 중...`;
     try {
       const res = await apiPost("importExcel", { engineers: eng });
       succeeded += res.added || 0;
-    } catch(err) {
-      failed += eng.length;
-      errors.push("기술인 등록 실패: " + err.message);
-    }
+    } catch(err) { failed += eng.length; errors.push("기술인 등록 실패: " + err.message); }
   }
 
-  // ② 기술인ID 매핑 (한 번만 조회)
+  // ② ID 매핑
   let empNoToId = {};
   if (exp.length > 0 || cert.length > 0) {
     status.textContent = "⏳ ID 매핑 중...";
     try {
       const engineers = await api("getEngineers");
       engineers.forEach(e => { if (e["사번"]) empNoToId[e["사번"]] = e["ID"]; });
-    } catch(err) {}
+    } catch(err) { errors.push("ID 매핑 실패: " + err.message); }
   }
 
-  // ③ 경력 + 자격증 병렬 등록 (Promise.all)
+  // ③ 경력/자격증 청크 분할 병렬 등록 (100건씩 → Apps Script 타임아웃 방지)
+  const CHUNK = 100;
   const tasks = [];
 
   if (exp.length > 0) {
@@ -1737,11 +1752,12 @@ async function executeUpload() {
       else { failed++; unmapped.push(e.기술인사번); }
     });
     if (unmapped.length) errors.push("경력 미매핑 사번: " + [...new Set(unmapped)].join(", "));
-    if (mapped.length > 0) {
+    for (let i = 0; i < mapped.length; i += CHUNK) {
+      const chunk = mapped.slice(i, i + CHUNK);
       tasks.push(
-        apiPost("batchAddExperiences", { experiences: mapped })
+        apiPost("batchAddExperiences", { experiences: chunk })
           .then(r => { succeeded += r.added || 0; })
-          .catch(err => { failed += mapped.length; errors.push("경력 등록 실패: " + err.message); })
+          .catch(err => { failed += chunk.length; errors.push("경력 등록 실패: " + err.message); })
       );
     }
   }
@@ -1754,22 +1770,22 @@ async function executeUpload() {
       else { failed++; unmapped.push(c.기술인사번); }
     });
     if (unmapped.length) errors.push("자격증 미매핑 사번: " + [...new Set(unmapped)].join(", "));
-    if (mapped.length > 0) {
+    for (let i = 0; i < mapped.length; i += CHUNK) {
+      const chunk = mapped.slice(i, i + CHUNK);
       tasks.push(
-        apiPost("batchAddCerts", { certs: mapped })
+        apiPost("batchAddCerts", { certs: chunk })
           .then(r => { succeeded += r.added || 0; })
-          .catch(err => { failed += mapped.length; errors.push("자격증 등록 실패: " + err.message); })
+          .catch(err => { failed += chunk.length; errors.push("자격증 등록 실패: " + err.message); })
       );
     }
   }
 
   if (tasks.length > 0) {
-    status.textContent = "⏳ 경력·자격증 병렬 등록 중...";
+    status.textContent = `⏳ ${tasks.length}개 배치 병렬 등록 중...`;
     await Promise.all(tasks);
   }
 
-  btn.disabled = false;
-  btn.textContent = "✅ 일괄 등록 실행";
+  btn.disabled = false; btn.textContent = "✅ 일괄 등록 실행";
   status.textContent = "";
   cacheClear("all");
 
@@ -1788,7 +1804,6 @@ async function executeUpload() {
   if (failed===0) toast(`${succeeded}건 등록 완료!`, "success");
   else toast(`${succeeded}건 완료, ${failed}건 실패`, "error");
 }
-
 
 function downloadTemplate() {
   if (typeof XLSX === 'undefined') { toast("잠시 후 다시 시도하세요 (라이브러리 로딩 중)", "error"); return; }
@@ -1927,9 +1942,8 @@ function doLogout() {
 
 // 이미 토큰 있으면 자동 로그인
 window.addEventListener("load", () => {
-  // 자동 로그인 비활성화 — 항상 로그인 필요
-  // TOKEN 초기화 (저장된 토큰 무효화)
   TOKEN = "";
+  CURRENT_USER_ROLE = "USER";
   localStorage.removeItem("token");
   updateClock();
   setInterval(updateClock, 1000);
@@ -2198,20 +2212,16 @@ async function loadDashboard() {
       renderTopEngineers(data.경력TOP5);
     }
     if (expired) {
-      // 백그라운드에서 최신 데이터 갱신
-      data = await api("getDashboard");
-      CACHE.dashboard = data;
-      CACHE.dashboardTime = Date.now();
-    }
-    renderDashboardStats(data);
-    renderCharts(data);
-    renderTopEngineers(data.경력TOP5);
-    // 책임정도 목록 동적 세팅
-    if (data.책임정도목록 && data.책임정도목록.length) {
-      const sel = document.getElementById("s-chaegim");
-      if (sel) {
-        sel.innerHTML = '<option value="">전체</option>' +
-          data.책임정도목록.map(v => `<option value="${v}">${v}</option>`).join("");
+      // 백그라운드에서 최신 데이터 갱신 후 재렌더링
+      try {
+        data = await api("getDashboard");
+        CACHE.dashboard = data;
+        CACHE.dashboardTime = Date.now();
+        renderDashboardStats(data);
+        renderCharts(data);
+        renderTopEngineers(data.경력TOP5);
+      } catch(bgErr) {
+        if (!CACHE.dashboard) toast("대시보드 로딩 실패: " + bgErr.message, "error");
       }
     }
   } catch(e) {
@@ -3041,16 +3051,49 @@ async function doSearch() {
 }
 
 function clearSearch() {
-  ["s-name","s-minexp"].forEach(id => document.getElementById(id).value = "");
-  ["s-arch-grade","s-qual-grade","s-certtype","s-chaegim"].forEach(id => document.getElementById(id).value = "");
+  // 텍스트/숫자 입력 초기화
+  ["s-name","s-minexp"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  // select 초기화
+  ["s-arch-grade","s-qual-grade","s-certtype"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  // 다중선택 드롭다운 초기화 (체크박스 + 전체선택 + 라벨)
   clearItems("pt-major-checkbox", "s-projtype-major-label");
   clearItems("pt-minor-checkbox", "s-projtype-minor-label");
-  clearWorktypeSelection();
-  clearItems("chaegim-checkbox", "s-chaegim-label");
-  const cl = document.getElementById("s-chaegim-label");
-  if (cl) cl.textContent = "전체";
-  document.getElementById("search-results").innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>';
+  clearItems("wt-checkbox",       "s-worktype-label");
+  clearItems("chaegim-checkbox",  "s-chaegim-label");
+  // 전체선택 체크박스도 해제
+  ["all-check-pt-major-checkbox","all-check-pt-minor-checkbox",
+   "all-check-wt-checkbox","all-check-chaegim-checkbox"].forEach(cls => {
+    document.querySelectorAll("." + cls).forEach(c => c.checked = false);
+  });
+  // 라벨 텍스트 초기화
+  const labelMap = {
+    "s-projtype-major-label": "전체",
+    "s-projtype-minor-label": "전체",
+    "s-worktype-label": "전체 (선택 안함)",
+    "s-chaegim-label": "전체"
+  };
+  Object.entries(labelMap).forEach(([id, txt]) => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = txt; el.style.color = "var(--text3)"; }
+  });
+  // 열린 드롭다운 모두 닫기
+  ["s-projtype-major","s-projtype-minor","s-worktype","s-chaegim"].forEach(id => {
+    const dd = document.getElementById(id + "-dropdown");
+    if (dd) dd.style.display = "none";
+  });
+  // 검색 결과 및 PDF 버튼 초기화
+  document.getElementById("search-results").innerHTML =
+    '<div class="empty-state"><div class="empty-icon">🔍</div><p>검색 조건을 입력하고 검색 버튼을 누르세요</p></div>';
   document.getElementById("search-count").textContent = "";
+  const pdfBtn = document.getElementById("search-pdf-btn");
+  if (pdfBtn) pdfBtn.style.display = "none";
+  window._searchResults = [];
 }
 
 function exportSearchResult() {
