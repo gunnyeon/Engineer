@@ -925,7 +925,7 @@ tr:hover td { background: var(--surface); }
                 <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">이름 또는 사번 검색</label>
                 <div style="display:flex;gap:6px;">
                   <input type="text" class="form-control" id="report-search-input" placeholder="이름 또는 사번 입력..."
-                    style="max-width:220px;" oninput="filterReportList()" onkeypress="if(event.key==='Enter'){const q=this.value.trim().toLowerCase();const m=_reportEngineers.filter(e=>e['이름'].toLowerCase().includes(q)||(e['사번']||'').toLowerCase().includes(q));if(m.length>=1){selectReportEngineer(m[0].ID,m[0]['이름']+' ('+(m[0]['사번']||')+')');} else loadReport();}">
+                    style="max-width:220px;" oninput="filterReportList()" onkeydown="if(event.key==='Enter') onReportSearchEnter(this.value)">
                   <button class="btn btn-primary" onclick="loadReport()">경력 조회</button>
                 </div>
                 <div id="report-search-results" style="position:relative;"></div>
@@ -2968,6 +2968,12 @@ document.addEventListener("click", function(e) {
       if (dd) dd.style.display = "none";
     }
   });
+  // 경력증명서 검색 드롭다운 닫기
+  const reportResults = document.getElementById("report-search-results");
+  const reportInput   = document.getElementById("report-search-input");
+  if (reportResults && reportInput && !reportInput.contains(e.target) && !reportResults.contains(e.target)) {
+    reportResults.innerHTML = "";
+  }
 });
 
 async function doSearch() {
@@ -3387,32 +3393,91 @@ async function loadReportEngineers() {
   } catch(e) {}
 }
 function filterReportList() {
-  const q = document.getElementById("report-search-input").value.trim().toLowerCase();
+  const raw = document.getElementById("report-search-input").value.trim();
   const wrap = document.getElementById("report-search-results");
-  if (!q) { wrap.innerHTML = ""; return; }
-  const matched = _reportEngineers.filter(e =>
-    e["이름"].toLowerCase().includes(q) || (e["사번"]||"").toLowerCase().includes(q)
-  ).slice(0, 8);
-  if (!matched.length) { wrap.innerHTML = ""; return; }
-  // 정확히 1명 일치하면 자동 선택
-  if (matched.length === 1) {
-    selectReportEngineer(matched[0].ID, matched[0]["이름"] + " (" + (matched[0]["사번"]||"") + ")");
+  if (!raw) { wrap.innerHTML = ""; return; }
+  const q = raw.toLowerCase();
+
+  // 완전일치(이름/사번) 우선, 그 다음 부분일치
+  const exact   = _reportEngineers.filter(e =>
+    e["이름"] === raw || (e["사번"]||"") === raw
+  );
+  const partial = _reportEngineers.filter(e =>
+    !exact.includes(e) && (
+      e["이름"].toLowerCase().includes(q) ||
+      (e["사번"]||"").toLowerCase().includes(q)
+    )
+  );
+  const matched = [...exact, ...partial].slice(0, 10);
+
+  if (!matched.length) {
+    wrap.innerHTML = `<div style="position:absolute;top:0;left:0;background:var(--bg2);border:1px solid var(--border);border-radius:7px;z-index:100;width:300px;padding:12px 14px;font-size:13px;color:var(--text3);">
+      검색 결과가 없습니다.</div>`;
     return;
   }
-  wrap.innerHTML = `<div style="position:absolute;top:0;left:0;background:var(--bg2);border:1px solid var(--border);border-radius:7px;z-index:100;width:300px;box-shadow:var(--shadow-md);">
-    ${matched.map(e => `<div onclick="selectReportEngineer('${e.ID}','${e["이름"]} (${e["사번"]||""})')"
-      style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);"
-      onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
-      <strong>${e["이름"]}</strong> <span style="color:var(--text3);font-size:11px;">${e["사번"]||""} · ${e["소속부서"]||""}</span>
-    </div>`).join("")}
+
+  // 완전일치 1명이면 즉시 자동 조회
+  if (exact.length === 1) {
+    wrap.innerHTML = "";
+    selectReportEngineer(exact[0].ID, exact[0]["이름"] + " (" + (exact[0]["사번"]||"") + ")");
+    return;
+  }
+
+  // 여러 명 → 드롭다운 목록 (완전일치는 구분선으로 강조)
+  wrap.innerHTML = `<div style="position:absolute;top:0;left:0;background:var(--bg2);border:1px solid var(--border);border-radius:7px;z-index:100;width:320px;box-shadow:var(--shadow-md);max-height:280px;overflow-y:auto;">
+    ${matched.map((e, i) => {
+      const isExact = exact.includes(e);
+      const sep = isExact && i === exact.length - 1 && partial.length > 0
+        ? `<div style="font-size:10px;color:var(--text3);padding:2px 12px;background:var(--surface);">── 부분일치 ──</div>` : "";
+      return `<div onclick="selectReportEngineer('${e.ID}','${e["이름"]} (${e["사번"]||""})');document.getElementById('report-search-results').innerHTML='';"
+        style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);${isExact?'background:#eff6ff;':''}"
+        onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='${isExact?'#eff6ff':''}'" >
+        <strong>${e["이름"]}</strong>${isExact?` <span style="font-size:10px;color:var(--primary);font-weight:700;">✓ 일치</span>`:""}
+        <span style="color:var(--text3);font-size:11px;margin-left:6px;">${e["사번"]||""} · ${e["소속부서"]||""}</span>
+      </div>${sep}`;
+    }).join("")}
   </div>`;
 }
 function selectReportEngineer(id, label) {
   document.getElementById("report-engineer-select").value = id;
   document.getElementById("report-search-input").value = label;
   document.getElementById("report-search-results").innerHTML = "";
-  // 선택 즉시 자동 조회
   loadReport();
+}
+
+// Enter 키 입력 시 스마트 검색
+function onReportSearchEnter(raw) {
+  if (!raw || !raw.trim()) { toast("이름 또는 사번을 입력하세요", "error"); return; }
+  const q = raw.trim().toLowerCase();
+
+  // 1순위: 완전일치
+  const exact = _reportEngineers.filter(e =>
+    e["이름"] === raw.trim() || (e["사번"]||"") === raw.trim()
+  );
+  if (exact.length === 1) {
+    selectReportEngineer(exact[0].ID, exact[0]["이름"] + " (" + (exact[0]["사번"]||"") + ")");
+    return;
+  }
+  if (exact.length > 1) {
+    // 동명이인 → 드롭다운 표시
+    filterReportList();
+    return;
+  }
+
+  // 2순위: 부분일치
+  const partial = _reportEngineers.filter(e =>
+    e["이름"].toLowerCase().includes(q) || (e["사번"]||"").toLowerCase().includes(q)
+  );
+  if (partial.length === 1) {
+    selectReportEngineer(partial[0].ID, partial[0]["이름"] + " (" + (partial[0]["사번"]||"") + ")");
+    return;
+  }
+  if (partial.length > 1) {
+    filterReportList();
+    return;
+  }
+
+  toast("'" + raw.trim() + "' 검색 결과가 없습니다.", "error");
 }
 
 async function loadReport() {
