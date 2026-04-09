@@ -320,6 +320,10 @@ tr:hover td { background: var(--surface); }
   border-radius: 50%; animation: spin .7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 .loading-overlay {
   display: flex; align-items: center; justify-content: center;
   padding: 40px; color: var(--text3); gap: 12px;
@@ -1282,7 +1286,7 @@ tr:hover td { background: var(--surface); }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  설정 — Apps Script 배포 후 URL을 여기에 입력
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = "https://script.google.com/macros/s/AKfycbxVhPDmM4IGq1nAuFk5bIZPIN9ru72MkZCupq9SyfNTJYtlF59Q_-X5Oe4hryBofR9JxA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzLYzeYIrDJqeaZQJlrev6xqBRpznQcZIr1OFr6Q8FN7KVVprfb_njo8A5nrGwx6myE/exec";
 // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
 // 분야별 기술등급 배지 렌더링
@@ -2201,32 +2205,50 @@ let chartsInitialized = false;
 let chartWorktype, chartGrade, chartProjtype;
 
 async function loadDashboard() {
-  try {
-    // 캐시 있으면 즉시 렌더링 후 10분 경과 시 백그라운드 갱신
-    let data = CACHE.dashboard;
-    const expired = !data || (Date.now() - CACHE.dashboardTime > 600000);
-    if (data) {
-      // 캐시 즉시 표시
-      renderDashboardStats(data);
-      renderCharts(data);
-      renderTopEngineers(data.경력TOP5);
-    }
-    if (expired) {
-      // 백그라운드에서 최신 데이터 갱신 후 재렌더링
-      try {
-        data = await api("getDashboard");
-        CACHE.dashboard = data;
-        CACHE.dashboardTime = Date.now();
-        renderDashboardStats(data);
-        renderCharts(data);
-        renderTopEngineers(data.경력TOP5);
-      } catch(bgErr) {
-        if (!CACHE.dashboard) toast("대시보드 로딩 실패: " + bgErr.message, "error");
-      }
-    }
-  } catch(e) {
-    toast("대시보드 로딩 실패: " + e.message, "error");
+  const cached = CACHE.dashboard;
+  const expired = !cached || (Date.now() - CACHE.dashboardTime > 300000); // 5분 캐시
+
+  // ① 캐시 있으면 즉시 표시 (사용자 대기 0초)
+  if (cached) {
+    renderDashboardStats(cached);
+    renderCharts(cached);
+    renderTopEngineers(cached.경력TOP5);
+    if (!expired) return; // 캐시 유효 → 서버 요청 없음
+  } else {
+    // 캐시 없을 때 스켈레톤 UI 표시
+    _showDashboardSkeleton();
   }
+
+  // ② 서버에서 최신 데이터 로드 (캐시 만료 or 최초 로드)
+  try {
+    const data = await api("getDashboard");
+    CACHE.dashboard = data;
+    CACHE.dashboardTime = Date.now();
+    renderDashboardStats(data);
+    renderCharts(data);
+    renderTopEngineers(data.경력TOP5);
+  } catch(e) {
+    if (!cached) {
+      document.getElementById("dashboard-stats").innerHTML =
+        `<div style="padding:20px;color:var(--danger);">대시보드 로딩 실패: ${e.message}</div>`;
+    }
+    // 캐시 있으면 기존 데이터 유지 (오류 토스트만)
+    if (cached) toast("대시보드 갱신 실패 (캐시 데이터 표시 중)", "info");
+  }
+}
+
+// 스켈레톤 로딩 UI
+function _showDashboardSkeleton() {
+  const sk = (w) => `<div style="background:linear-gradient(90deg,var(--border) 25%,var(--surface) 50%,var(--border) 75%);
+    background-size:200% 100%;animation:skeleton 1.2s infinite;border-radius:8px;height:${w};"></div>`;
+  document.getElementById("dashboard-stats").innerHTML = `
+    <div class="stat-card">${sk("40px")}<div style="margin-top:8px;">${sk("28px")}</div></div>
+    <div class="stat-card">${sk("40px")}<div style="margin-top:8px;">${sk("28px")}</div></div>
+    <div class="stat-card">${sk("40px")}<div style="margin-top:8px;">${sk("28px")}</div></div>
+    <div class="stat-card">${sk("40px")}<div style="margin-top:8px;">${sk("28px")}</div></div>`;
+  document.getElementById("top-engineers-body").innerHTML =
+    [1,2,3].map(()=>`<tr>${[1,2,3,4,5,6,7,8].map(()=>
+      `<td>${sk("16px")}</td>`).join("")}</tr>`).join("");
 }
 
 function renderDashboardStats(data) {
