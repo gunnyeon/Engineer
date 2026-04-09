@@ -2483,53 +2483,66 @@ function goPage(p) {
 async function openEngineerDetail(id) {
   CURRENT_ENG_ID = id;
 
-  // ① 기술인 기본정보: ALL_ENGINEERS 캐시에서 즉시 (API 없음)
+  // ① 모달 열기 전 이전 데이터 즉시 초기화 (잔상 방지)
+  document.getElementById("eng-id").value = "";
+  document.getElementById("eng-modal-title").textContent = "로딩 중...";
+  document.getElementById("cert-list").innerHTML =
+    '<div class="loading-overlay"><div class="spinner"></div></div>';
+  document.getElementById("exp-list").innerHTML =
+    '<div class="loading-overlay"><div class="spinner"></div></div>';
+
+  // ② 기본정보: ALL_ENGINEERS 캐시에서 즉시 채움
   let eng = ALL_ENGINEERS.find(e => e.ID === id) || cacheGet("engineerDetail", id);
 
   if (eng) {
     _fillEngineerForm(eng);
-    openModal("engineer-modal");
-    switchTab("eng-tab", "basic", null);
-  } else {
-    // 캐시 없으면 모달 먼저 열고 로딩 표시
-    openModal("engineer-modal");
-    switchTab("eng-tab", "basic", null);
+  }
+  openModal("engineer-modal");
+  switchTab("eng-tab", "basic", null);
+
+  // ③ 경력+자격증 캐시 확인 → 즉시 렌더링 or API 호출
+  const cachedExps  = cacheGet("experiences", id);
+  const cachedCerts = cacheGet("certs", id);
+
+  if (cachedExps && cachedCerts) {
+    // 캐시 있으면 즉시 렌더링
+    _renderExpList(cachedExps);
+    _renderCertList(cachedCerts);
+    // 기본정보 캐시 없으면 백그라운드 보완
+    if (!eng) {
+      api("getEngineerDetail", { id }).then(detail => {
+        if (CURRENT_ENG_ID !== id) return; // 다른 사람 열었으면 무시
+        cacheSet("engineerDetail", id, detail);
+        _fillEngineerForm(detail);
+      }).catch(() => {});
+    }
+    return;
   }
 
-  // ② 경력+자격증: 통합 API 1번 호출 (병렬로 백그라운드 처리)
-  const detailPromise = api("getEngineerDetail", { id });
-
-  // 캐시에 없으면 서버에서 기본정보 가져오기 (드문 경우)
-  if (!eng) {
-    try {
-      eng = await api("getEngineer", { id });
-      cacheSet("engineerDetail", id, eng);
-      _fillEngineerForm(eng);
-    } catch(e) { toast("로딩 실패: " + e.message, "error"); return; }
-  }
-
-  // ③ 경력+자격증 렌더링 (캐시 우선, 없으면 통합 API 결과 사용)
+  // ④ 캐시 없으면 통합 API 1번 호출
   try {
-    // 캐시 확인
-    const cachedExps  = cacheGet("experiences", id);
-    const cachedCerts = cacheGet("certs", id);
+    const detail = await api("getEngineerDetail", { id });
+    if (CURRENT_ENG_ID !== id) return; // 로딩 중 다른 사람 선택 시 무시
+    cacheSet("experiences", id, detail.experiences);
+    cacheSet("certs", id, detail.certifications);
+    _renderExpList(detail.experiences);
+    _renderCertList(detail.certifications);
 
-    if (cachedExps && cachedCerts) {
-      // 캐시 있으면 즉시 렌더링, API 결과는 버림
-      _renderExpList(cachedExps);
-      _renderCertList(cachedCerts);
-      detailPromise.catch(() => {}); // 무시
-    } else {
-      // 캐시 없으면 API 결과 기다려서 렌더링
-      const detail = await detailPromise;
-      cacheSet("experiences", id, detail.experiences);
-      cacheSet("certs", id, detail.certifications);
-      _renderExpList(detail.experiences);
-      _renderCertList(detail.certifications);
+    // 기본정보가 아직 없으면 채우기
+    if (!eng) {
+      try {
+        eng = await api("getEngineer", { id });
+        if (CURRENT_ENG_ID !== id) return;
+        cacheSet("engineerDetail", id, eng);
+        _fillEngineerForm(eng);
+      } catch(e2) { toast("기본정보 로딩 실패: " + e2.message, "error"); }
     }
   } catch(e) {
-    document.getElementById("exp-list").innerHTML = '<div class="empty-state"><p>경력 로딩 실패</p></div>';
-    document.getElementById("cert-list").innerHTML = '<div class="empty-state"><p>자격증 로딩 실패</p></div>';
+    if (CURRENT_ENG_ID !== id) return;
+    document.getElementById("exp-list").innerHTML =
+      '<div class="empty-state"><p>경력 로딩 실패</p></div>';
+    document.getElementById("cert-list").innerHTML =
+      '<div class="empty-state"><p>자격증 로딩 실패</p></div>';
   }
 }
 
