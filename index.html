@@ -2007,42 +2007,56 @@ function openPrintWindow(title, bodyHtml) {
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
         font-family: 'Malgun Gothic','Apple SD Gothic Neo','맑은 고딕',sans-serif;
-        font-size: 8.5pt; line-height: 1.4; padding: 6mm 8mm; color: #000;
+        font-size: 8pt; line-height: 1.35; color: #000;
       }
+      .wrap { padding: 6mm 8mm; }
       h2 {
-        font-size: 13pt; text-align: center; letter-spacing: 3px; font-weight: 900;
-        margin-bottom: 7px; padding-bottom: 5px; border-bottom: 2px solid #000;
+        font-size: 14pt; text-align: center; letter-spacing: 4px; font-weight: 900;
+        margin-bottom: 6px; padding-bottom: 5px; border-bottom: 2.5px solid #000;
       }
-      .meta { font-size: 7.5pt; color: #444; text-align: right; margin-bottom: 7px; }
-      .footer { font-size: 7pt; color: #666; text-align: right; margin-top: 8px; border-top: 1px solid #bbb; padding-top: 4px; }
+      .meta {
+        font-size: 7.5pt; color: #444; text-align: right;
+        margin-bottom: 6px; border-bottom: 1px solid #ddd; padding-bottom: 4px;
+      }
+      .footer {
+        font-size: 7pt; color: #666; text-align: right;
+        margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;
+      }
       table {
-        width: 100%; border-collapse: collapse; margin-bottom: 8px;
-        table-layout: fixed; word-break: break-all;
+        width: 100%; border-collapse: collapse;
+        table-layout: fixed; margin-bottom: 0;
       }
-      th {
-        background: #1e40af; color: #fff; padding: 4px 4px;
+      thead th {
+        background: #1e3a8a; color: #fff; padding: 5px 4px;
         font-size: 7.5pt; text-align: center; vertical-align: middle;
-        border: 1px solid #1d4ed8; white-space: nowrap;
+        border: 1px solid #1e40af; white-space: nowrap; font-weight: 700;
       }
-      td {
-        border: 1px solid #bbb; padding: 3px 4px;
-        font-size: 8pt; vertical-align: middle; line-height: 1.4;
+      tbody td {
+        border: 1px solid #ccc; padding: 4px 5px;
+        font-size: 7.8pt; vertical-align: middle; line-height: 1.35;
+        word-break: keep-all; overflow-wrap: anywhere;
       }
-      tr:nth-child(odd) td { background: #fff; }
-      tr:nth-child(even) td { background: #f0f4ff; }
+      tbody tr:nth-child(odd) td { background: #fff; }
+      tbody tr:nth-child(even) td { background: #f0f5ff; }
+      tbody tr:hover td { background: #e8f0fe; }
+      .tc { text-align: center; }
+      .bold { font-weight: 700; }
+      .cert-wrap { display: flex; flex-wrap: wrap; gap: 2px; }
       .badge {
-        display: inline-block; padding: 1px 4px; border-radius: 3px;
-        font-size: 6.5pt; background: #dbeafe; color: #1e40af; margin: 1px;
-        white-space: nowrap;
+        display: inline-block; padding: 1px 5px; border-radius: 3px;
+        font-size: 6.5pt; font-weight: 600;
+        background: #eff6ff; color: #1d4ed8;
+        border: 1px solid #bfdbfe; white-space: nowrap;
+        margin: 1px 1px;
       }
-      .badge-green { background: #d1fae5; color: #065f46; }
-      @page { size: A4 landscape; margin: 8mm; }
-      @media print { body { padding: 0; } }
+      @page { size: A4 landscape; margin: 0; }
+      @media print { body { margin: 0; } .wrap { padding: 5mm 7mm; } }
 
     </style>
-  </head><body>
+  </head><body><div class="wrap">
     ${bodyHtml}
-    <div class="footer">출력일: ${new Date().toLocaleDateString("ko-KR")} | 건축사업본부 기술인 경력관리 시스템</div>
+    <div class="footer">출력일: ${new Date().toLocaleDateString("ko-KR")} &nbsp;|&nbsp; 건축사업본부 기술인 경력관리 시스템</div>
+  </div>
     <script>window.onload=function(){window.print();};<\/script>
   </body></html>`);
   w.document.close();
@@ -2054,29 +2068,32 @@ function printEngineerList() {
   if (!data.length) { toast("출력할 데이터가 없습니다", "error"); return; }
   const rows = data.map((e, i) => `
     <tr>
-      <td style="text-align:center">${i+1}</td>
-      <td style="text-align:center;font-family:monospace;font-size:7.5pt">${e["사번"]||"-"}</td>
-      <td style="font-weight:700">${e["이름"]}</td>
-      <td>${e["소속부서"]||"-"}</td>
-      <td style="text-align:center">${e["직급"]||"-"}</td>
-      <td style="text-align:center;font-weight:700">${e["건축분야등급"]||"-"}</td>
-      <td style="text-align:center;font-weight:700">${e["품질분야등급"]||"-"}</td>
-      <td style="text-align:center;font-weight:700">${e["총경력연수"]||0}년</td>
-      <td>${e["자격증목록"]
-        ? e["자격증목록"].split(", ").map(c=>`<span class="badge badge-green">${c}</span>`).join("")
-        : "-"}</td>
-      <td style="font-size:7.5pt">${e["연락처"]||"-"}</td>
+      <td class="tc">${i+1}</td>
+      <td class="tc" style="font-size:7pt;letter-spacing:-0.3px">${e["사번"]||"-"}</td>
+      <td class="bold">${e["이름"]}</td>
+      <td style="font-size:7.5pt">${e["소속부서"]||"-"}</td>
+      <td class="tc">${e["직급"]||"-"}</td>
+      <td class="tc bold">${e["건축분야등급"]||"-"}</td>
+      <td class="tc bold">${e["품질분야등급"]||"-"}</td>
+      <td class="tc bold">${e["총경력연수"]||0}년</td>
+      <td><div class="cert-wrap">${e["자격증목록"]
+        ? e["자격증목록"].split(", ").map(c=>`<span class="badge">${c}</span>`).join("")
+        : "-"}</div></td>
+      <td class="tc" style="font-size:7pt;white-space:nowrap">${e["연락처"]||"-"}</td>
     </tr>`).join("");
   const body = `
     <h2>기 술 인 목 록</h2>
     <div class="meta">총 ${data.length}명 &nbsp;|&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
     <table>
       <colgroup>
-        <col style="width:4%"><col style="width:10%"><col style="width:8%">
-        <col style="width:11%"><col style="width:7%"><col style="width:7%">
-        <col style="width:7%"><col style="width:7%"><col style="width:28%"><col style="width:11%">
+        <col style="width:3%"><col style="width:8%"><col style="width:7%">
+        <col style="width:13%"><col style="width:7%"><col style="width:6%">
+        <col style="width:6%"><col style="width:6%"><col style="width:33%"><col style="width:11%">
       </colgroup>
-      <thead><tr><th>No</th><th>사번</th><th>이름</th><th>소속부서</th><th>직급</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>자격증</th><th>연락처</th></tr></thead>
+      <thead><tr>
+        <th>No</th><th>사번</th><th>이름</th><th>소속부서</th><th>직급</th>
+        <th>건축<br>등급</th><th>품질<br>등급</th><th>총경력</th><th>보유 자격증</th><th>연락처</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   openPrintWindow("기술인 목록", body);
@@ -2088,28 +2105,31 @@ function printSearchResult() {
   if (!data.length) { toast("출력할 검색 결과가 없습니다", "error"); return; }
   const rows = data.map((e, i) => `
     <tr>
-      <td style="text-align:center">${i+1}</td>
-      <td style="text-align:center;font-family:monospace;font-size:7.5pt">${e["사번"]||"-"}</td>
-      <td style="font-weight:700">${e["이름"]}</td>
-      <td>${e["소속부서"]||"-"}</td>
-      <td style="text-align:center">${e["건축분야등급"]||"-"}</td>
-      <td style="text-align:center">${e["품질분야등급"]||"-"}</td>
-      <td style="text-align:center;font-weight:700">${e["총경력연수"]||0}년</td>
-      <td style="text-align:center;color:#1a56db;font-weight:700">${e["조건경력연수"]>0?e["조건경력연수"]+"년":"-"}</td>
-      <td>${e["자격증명목록"]
-        ? e["자격증명목록"].split(", ").map(c=>`<span class="badge badge-green">${c}</span>`).join("")
-        : "-"}</td>
+      <td class="tc">${i+1}</td>
+      <td class="tc" style="font-size:7pt;letter-spacing:-0.3px">${e["사번"]||"-"}</td>
+      <td class="bold">${e["이름"]}</td>
+      <td style="font-size:7.5pt">${e["소속부서"]||"-"}</td>
+      <td class="tc bold">${e["건축분야등급"]||"-"}</td>
+      <td class="tc bold">${e["품질분야등급"]||"-"}</td>
+      <td class="tc bold">${e["총경력연수"]||0}년</td>
+      <td class="tc bold" style="color:#1e40af">${e["조건경력연수"]>0?e["조건경력연수"]+"년":"-"}</td>
+      <td><div class="cert-wrap">${e["자격증명목록"]
+        ? e["자격증명목록"].split(", ").map(c=>`<span class="badge">${c}</span>`).join("")
+        : "-"}</div></td>
     </tr>`).join("");
   const body = `
     <h2>전 문 가 검 색 결 과</h2>
     <div class="meta">총 ${data.length}명 &nbsp;|&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
     <table>
       <colgroup>
-        <col style="width:4%"><col style="width:10%"><col style="width:9%">
-        <col style="width:12%"><col style="width:8%"><col style="width:8%">
-        <col style="width:8%"><col style="width:8%"><col style="width:33%">
+        <col style="width:3%"><col style="width:8%"><col style="width:7%">
+        <col style="width:14%"><col style="width:6%"><col style="width:6%">
+        <col style="width:7%"><col style="width:7%"><col style="width:42%">
       </colgroup>
-      <thead><tr><th>No</th><th>사번</th><th>이름</th><th>소속부서</th><th>건축등급</th><th>품질등급</th><th>총경력</th><th>조건경력</th><th>자격증</th></tr></thead>
+      <thead><tr>
+        <th>No</th><th>사번</th><th>이름</th><th>소속부서</th>
+        <th>건축<br>등급</th><th>품질<br>등급</th><th>총경력</th><th>조건경력</th><th>보유 자격증</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   openPrintWindow("전문가 검색 결과", body);
@@ -2118,28 +2138,34 @@ function printSearchResult() {
 // ── 종심제 배치현황 PDF ──────────────────────────────────────
 function printJongsimje() {
   if (!JONGSIMJE_DATA.length) { toast("출력할 배치현황이 없습니다", "error"); return; }
-  const fmt = arr => (arr||[]).filter(Boolean).join("<br>") || "-";
+  // 담당자 쉼표 구분 (줄바꿈 대신 쉼표로 → 행 높이 최소화)
+  const fmt  = arr => (arr||[]).filter(Boolean).join(", ") || "-";
+  // 현장소장은 1명이라 그대로
+  const fmtS = arr => (arr||[]).filter(Boolean).join(" ") || "-";
   const rows = JONGSIMJE_DATA.map((r, i) => `
     <tr>
-      <td style="text-align:center">${i+1}</td>
-      <td style="font-weight:700">${r.현장명}</td>
-      <td style="text-align:center">${fmt(r.현장소장)}</td>
+      <td class="tc">${i+1}</td>
+      <td class="bold">${r.현장명}</td>
+      <td class="tc">${fmtS(r.현장소장)}</td>
       <td>${fmt(r.공사담당)}</td>
-      <td>${fmt(r.안전담당)}</td>
-      <td>${fmt(r.품질담당)}</td>
-      <td style="text-align:center;white-space:nowrap">${r.배치일||"-"}</td>
-      <td style="font-size:7.5pt;color:#444">${r.비고||"-"}</td>
+      <td class="tc">${fmt(r.안전담당)}</td>
+      <td class="tc">${fmt(r.품질담당)}</td>
+      <td class="tc" style="white-space:nowrap;font-size:7.5pt">${r.배치일||"-"}</td>
+      <td style="font-size:7pt;color:#333">${r.비고||"-"}</td>
     </tr>`).join("");
   const body = `
     <h2>종 심 제 배 치 현 황</h2>
     <div class="meta">총 ${JONGSIMJE_DATA.length}개 현장 &nbsp;|&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")}</div>
     <table>
       <colgroup>
-        <col style="width:4%"><col style="width:20%"><col style="width:11%">
-        <col style="width:22%"><col style="width:14%"><col style="width:14%">
-        <col style="width:8%"><col style="width:7%">
+        <col style="width:3%"><col style="width:22%"><col style="width:10%">
+        <col style="width:23%"><col style="width:13%"><col style="width:13%">
+        <col style="width:9%"><col style="width:7%">
       </colgroup>
-      <thead><tr><th>No</th><th>현장명</th><th>현장소장</th><th>공사담당</th><th>안전담당</th><th>품질담당</th><th>배치일</th><th>비고</th></tr></thead>
+      <thead><tr>
+        <th>No</th><th>현장명</th><th>현장소장</th><th>공사담당</th>
+        <th>안전담당</th><th>품질담당</th><th>배치일</th><th>비고</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   openPrintWindow("종심제 배치현황", body);
@@ -3543,47 +3569,49 @@ function renderReport(data) {
 
       <div class="section-title">1. 인적사항</div>
       <table>
-        <colgroup><col width="60"><col width="120"><col width="60"><col width="120"><col width="60"><col></colgroup>
-        <tr><th>사 번</th><td>${eng["사번"]||"-"}</td><th>성 명</th><td><strong>${eng["이름"]}</strong></td><th>생년월일</th><td>${fmtDate(eng["생년월일"])}</td></tr>
-        <tr><th>소속부서</th><td>${eng["소속부서"]||"-"}</td><th>직 급</th><td>${eng["직급"]||"-"}</td><th>입사일</th><td>${fmtDate(eng["입사일"])}</td></tr>
-        <tr><th>건축등급</th><td><strong>${eng["건축분야등급"]||"-"}</strong></td><th>품질등급</th><td><strong>${eng["품질분야등급"]||"-"}</strong></td><th>총경력</th><td><strong>${eng["총경력연수"]}년</strong></td></tr>
-        <tr><th>연락처</th><td colspan="5">${eng["연락처"]||"-"}</td></tr>
+        <colgroup><col style="width:10%"><col style="width:18%"><col style="width:10%"><col style="width:18%"><col style="width:10%"><col></colgroup>
+        <tbody>
+          <tr><th>사 번</th><td>${eng["사번"]||"-"}</td><th>성 명</th><td><strong>${eng["이름"]}</strong></td><th>생년월일</th><td>${fmtDate(eng["생년월일"])}</td></tr>
+          <tr><th>소속부서</th><td>${eng["소속부서"]||"-"}</td><th>직 급</th><td>${eng["직급"]||"-"}</td><th>입사일</th><td>${fmtDate(eng["입사일"])}</td></tr>
+          <tr><th>건축등급</th><td><strong>${eng["건축분야등급"]||"-"}</strong></td><th>품질등급</th><td><strong>${eng["품질분야등급"]||"-"}</strong></td><th>총경력</th><td><strong>${eng["총경력연수"]}년</strong></td></tr>
+          <tr><th>연락처</th><td colspan="5">${eng["연락처"]||"-"}</td></tr>
+        </tbody>
       </table>
 
       <div class="section-title">2. 자격증 현황</div>
       <table>
-        <colgroup><col width="180"><col width="160"><col width="100"><col></colgroup>
-        <tr><th>자격증명</th><th>자격증번호</th><th>취득일</th><th>발급기관</th></tr>
-        ${certs.length ? certs.map(c=>`<tr><td>${c["자격증명"]}</td><td>${c["자격증번호"]||"-"}</td><td style="text-align:center">${fmtDate(c["취득일"])}</td><td>${c["발급기관"]||"-"}</td></tr>`).join("") : "<tr><td colspan='4' style='text-align:center'>-</td></tr>"}
+        <colgroup><col style="width:35%"><col style="width:25%"><col style="width:15%"><col></colgroup>
+        <thead><tr><th>자격증명</th><th>자격증번호</th><th>취득일</th><th>발급기관</th></tr></thead>
+        <tbody>${certs.length ? certs.map(c=>`<tr><td>${c["자격증명"]}</td><td class="tc">${c["자격증번호"]||"-"}</td><td class="tc">${fmtDate(c["취득일"])}</td><td>${c["발급기관"]||"-"}</td></tr>`).join("") : "<tr><td colspan='4' class='tc'>-</td></tr>"}</tbody>
       </table>
 
       <div class="section-title">3. 경력 상세</div>
       <table class="detail-table">
         <colgroup>
-          <col width="20"><col width="150"><col width="70"><col width="70">
-          <col width="95"><col width="30"><col width="45"><col width="45">
-          <col width="40"><col width="35"><col width="80">
+          <col style="width:3%"><col style="width:22%"><col style="width:10%">
+          <col style="width:10%"><col style="width:14%"><col style="width:5%">
+          <col style="width:7%"><col style="width:9%"><col style="width:6%">
+          <col style="width:14%">
         </colgroup>
-        <tr>
+        <thead><tr>
           <th>No</th><th>프로젝트명</th><th>발주처</th><th>시공사</th>
-          <th>참여기간</th><th>인정일수</th><th>대구분</th><th>소구분</th>
-          <th>공법</th><th>책임</th><th>담당업무</th>
-        </tr>
-        ${exps.map((e,i)=>`
+          <th>참여기간</th><th>인정<br>일수</th><th>공사유형</th><th>소구분</th>
+          <th>책임</th><th>담당업무</th>
+        </tr></thead>
+        <tbody>${exps.map((e,i)=>`
           <tr>
-            <td style="text-align:center">${i+1}</td>
+            <td class="tc">${i+1}</td>
             <td>${e["프로젝트명직접입력"]||"-"}</td>
             <td>${e["발주처"]||"-"}</td>
             <td>${e["시공사"]||"-"}</td>
-            <td style="text-align:center;white-space:nowrap">${fmtDate(e["참여시작일"])}~${fmtDate(e["참여종료일"])}<br>(${e["기간표시"]})</td>
-            <td style="text-align:center">${e["인정일수"]||"-"}</td>
-            <td style="text-align:center">${e["공사유형_대구분"]||e["공사유형"]||"-"}</td>
-            <td style="text-align:center">${e["공사유형_소구분"]||"-"}</td>
-            <td style="text-align:center">${e["공법"]||"-"}</td>
-            <td style="text-align:center">${e["책임정도"]||"-"}</td>
+            <td class="tc">${fmtDate(e["참여시작일"])}~<br>${fmtDate(e["참여종료일"])}<br><span style="color:#555">(${e["기간표시"]})</span></td>
+            <td class="tc">${e["인정일수"]||"-"}</td>
+            <td class="tc">${e["공사유형_대구분"]||e["공사유형"]||"-"}</td>
+            <td class="tc">${e["공사유형_소구분"]||"-"}</td>
+            <td class="tc">${e["책임정도"]||"-"}</td>
             <td>${e["담당업무"]||"-"}</td>
           </tr>
-        `).join("")}
+        `).join("")}</tbody>
       </table>
 
       <div class="footer-area">
@@ -3599,56 +3627,51 @@ function printReport() {
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>경력증명서</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body {
+      html, body {
         font-family: 'Malgun Gothic','Apple SD Gothic Neo','맑은 고딕',sans-serif;
-        font-size: 8.5pt; line-height: 1.4; margin: 0;
-        padding: 6mm 8mm; color: #000; width: 100%;
+        font-size: 8pt; line-height: 1.35; color: #000;
       }
+      #pdf-preview { padding: 6mm 8mm; }
       h1 {
-        font-size: 15pt; text-align: center; letter-spacing: 4px;
-        border-bottom: 2.5px solid #000; padding-bottom: 6px; margin-bottom: 10px;
-        font-weight: 900;
+        font-size: 15pt; text-align: center; letter-spacing: 5px; font-weight: 900;
+        border-bottom: 2.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;
       }
       .section-title {
-        font-size: 8.5pt; font-weight: 700; background: #ddd;
-        padding: 3px 8px; margin: 7px 0 3px; letter-spacing: 0.5px;
+        font-size: 8pt; font-weight: 700; background: #e0e0e0;
+        padding: 2px 8px; margin: 6px 0 2px; letter-spacing: 0.5px;
       }
-      /* 인적사항/자격증 테이블 */
+      /* ─ 인적사항 / 자격증 공통 ─ */
       table {
-        width: 100%; border-collapse: collapse; table-layout: fixed;
-        margin-bottom: 4px; word-break: keep-all; overflow-wrap: break-word;
+        width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3px;
       }
       td, th {
-        border: 1px solid #999; padding: 3px 5px;
-        font-size: 8pt; vertical-align: middle; line-height: 1.4;
+        border: 1px solid #aaa; padding: 3px 5px;
+        font-size: 7.8pt; vertical-align: middle; line-height: 1.35;
+        word-break: keep-all; overflow-wrap: break-word;
       }
-      th { background: #e0e0e0; font-weight: 700; text-align: center; white-space: nowrap; }
-      tr:nth-child(even) td { background: #f8f8f8; }
-      /* 경력 상세 테이블 */
-      .detail-table { margin-bottom: 4px; }
-      .detail-table td, .detail-table th {
-        font-size: 7pt; padding: 2px 3px; vertical-align: middle;
-        line-height: 1.4; word-break: break-all;
+      th { background: #e8e8e8; font-weight: 700; text-align: center; white-space: nowrap; }
+      tbody tr:nth-child(even) td { background: #f6f6f6; }
+      /* ─ 경력 상세 ─ */
+      .detail-table { margin-top: 0; }
+      .detail-table thead th {
+        background: #1e3a8a; color: #fff; border-color: #1e40af;
+        font-size: 6.8pt; padding: 3px 2px; text-align: center;
+        white-space: normal; word-break: keep-all; line-height: 1.2; font-weight: 700;
       }
-      .detail-table th {
-        background: #2563eb; color: #fff;
-        border-color: #1d4ed8; white-space: nowrap; text-align: center;
+      .detail-table tbody td {
+        font-size: 6.8pt; padding: 2px 3px; vertical-align: middle;
+        word-break: keep-all; overflow-wrap: anywhere; line-height: 1.3;
       }
-      .detail-table td { text-align: left; }
-      .detail-table td:first-child,
-      .detail-table td:nth-child(5),
-      .detail-table td:nth-child(6),
-      .detail-table td:nth-child(7),
-      .detail-table td:nth-child(8),
-      .detail-table td:nth-child(9),
-      .detail-table td:nth-child(10) { text-align: center; }
+      .detail-table tbody tr:nth-child(odd) td { background: #fff; }
+      .detail-table tbody tr:nth-child(even) td { background: #eff6ff; }
+      .tc { text-align: center; }
       .footer-area {
-        margin-top: 8px; font-size: 7.5pt; text-align: right;
-        color: #555; border-top: 1px solid #bbb; padding-top: 4px;
+        margin-top: 6px; font-size: 7pt; text-align: right;
+        color: #666; border-top: 1px solid #bbb; padding-top: 3px;
       }
-      @page { size: A4 portrait; margin: 7mm; }
-      @media print { body { padding: 0; } }
-    </style></head><body>${content}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+      @page { size: A4 portrait; margin: 0; }
+      @media print { html, body { margin: 0; } }
+    </style></head><body>${content}<script>window.onload=function(){window.print();};<\/script></body></html>`);
   w.document.close();
 }
 
